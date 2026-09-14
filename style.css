@@ -151,7 +151,7 @@ body {
   border: 1px solid rgba(139, 92, 246, 0.35);
 }
 
-/* Main Workspace Grid (2 Columns) */
+/* Main Workspace Grid (Fluid 2 Columns on Desktop, 1 Column on Tablet/Mobile) */
 .main-layout {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
@@ -159,17 +159,26 @@ body {
   align-items: start;
 }
 
-@media (max-width: 1100px) {
-  .main-layout {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* Panes */
 .builder-pane, .output-pane {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  min-width: 0;
+}
+
+@media (min-width: 1101px) {
+  .output-pane {
+    position: sticky;
+    top: 20px;
+    align-self: start;
+  }
+  
+  .card-output .prompt-preview-wrapper {
+    height: calc(100vh - 280px);
+    min-height: 400px;
+    max-height: calc(100vh - 160px);
+  }
 }
 
 /* Cards */
@@ -192,6 +201,8 @@ body {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .header-left {
@@ -410,7 +421,8 @@ body {
 .stats-badge-group {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .badge {
@@ -948,3 +960,236 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.28);
 }
+
+/* ==========================================================================
+   Responsive Breakpoints System
+   ========================================================================== */
+
+/* Large Laptops / Normal Desktops (<= 1280px) */
+@media (max-width: 1280px) {
+  .app-container {
+    padding: 16px 20px 40px;
+    gap: 16px;
+  }
+  .main-layout {
+    gap: 18px;
+  }
+}
+
+/* Tablets & Small Laptops (<= 1100px) */
+@media (max-width: 1100px) {
+  .main-layout {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .output-pane {
+    position: static;
+  }
+
+  .card-output .prompt-preview-wrapper {
+    height: auto;
+    min-height: 280px;
+    max-height: 480px;
+  }
+}
+
+/* Small Tablets & Large Phones (<= 768px) */
+@media (max-width: 768px) {
+  .app-container {
+    padding: 12px 12px 36px;
+    gap: 14px;
+  }
+
+  .app-header {
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .header-brand {
+    gap: 10px;
+  }
+
+  .brand-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 20px;
+  }
+
+  .brand-title {
+    font-size: 19px;
+  }
+
+  .brand-tagline {
+    font-size: 11.5px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .mode-badge {
+    font-size: 11px;
+    padding: 4px 10px;
+  }
+
+  .card {
+    padding: 16px 14px;
+    border-radius: var(--radius-md);
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .header-left {
+    width: 100%;
+  }
+
+  .stats-badge-group {
+    width: 100%;
+    gap: 6px;
+  }
+
+  .badge {
+    font-size: 10.5px;
+    padding: 3px 8px;
+  }
+
+  .task-textarea {
+    min-height: 180px;
+    font-size: 12.5px;
+    padding: 10px;
+  }
+
+  .role-textarea {
+    min-height: 65px;
+    font-size: 12.5px;
+    padding: 10px;
+  }
+
+  .attachments-container {
+    padding: 12px 10px;
+  }
+
+  .attachments-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .att-header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .att-header-actions .btn {
+    flex: 1 1 auto;
+    text-align: center;
+    justify-content: center;
+  }
+
+  .dropzone {
+    padding: 14px 10px;
+  }
+
+  .dropzone-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+
+  .dropzone-text-block {
+    text-align: center;
+  }
+
+  .dropzone-buttons {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .dropzone-buttons .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .btn-refine {
+    font-size: 13.5px;
+    padding: 12px 14px;
+  }
+
+  .btn-copy-full {
+    font-size: 14px;
+    padding: 13px 16px;
+  }
+
+  .prompt-preview-wrapper {
+    padding: 12px;
+    max-height: 380px;
+  }
+
+  .prompt-pre {
+    font-size: 11.5px;
+  }
+
+  .toast-container {
+    left: 12px;
+    right: 12px;
+    bottom: 14px;
+  }
+
+  .toast {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+}
+
+/* Mobile Phones (<= 480px) */
+@media (max-width: 480px) {
+  .app-container {
+    padding: 8px 8px 24px;
+    gap: 10px;
+  }
+
+  .app-header {
+    padding: 10px 12px;
+  }
+
+  .card {
+    padding: 14px 10px;
+  }
+
+  .header-brand {
+    gap: 8px;
+  }
+
+  .brand-title {
+    font-size: 17px;
+  }
+
+  .att-item {
+    padding: 8px 10px;
+  }
+
+  .att-header-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .att-tools {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .att-name {
+    max-width: calc(100vw - 150px);
+  }
+}
+
