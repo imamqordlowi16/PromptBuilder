@@ -76,9 +76,11 @@
     revSpinner: document.getElementById("revSpinner"),
     promptEvalCard: document.getElementById("promptEvalCard"),
     btnConfirmSatisfied: document.getElementById("btnConfirmSatisfied"),
+    btnFinishNewSession: document.getElementById("btnFinishNewSession"),
     btnTriggerRevision: document.getElementById("btnTriggerRevision"),
     btnDismissEval: document.getElementById("btnDismissEval"),
     btnContinuePrompting: document.getElementById("btnContinuePrompting"),
+    btnFinishNewSessionAction: document.getElementById("btnFinishNewSessionAction"),
     btnContStepNum: document.getElementById("btnContStepNum"),
 
     // Attachments Elements
@@ -170,9 +172,19 @@
       el.btnConfirmSatisfied.addEventListener("click", handleStartContinuation);
     }
 
+    // Evaluation: Selesai (Buat Sesi Baru)
+    if (el.btnFinishNewSession) {
+      el.btnFinishNewSession.addEventListener("click", handleFinishNewSession);
+    }
+
     // Output Action Row: Direct Lanjutkan Ngeprompt Button
     if (el.btnContinuePrompting) {
       el.btnContinuePrompting.addEventListener("click", handleStartContinuation);
+    }
+
+    // Output Action Row: Selesai Buat Sesi Baru Button
+    if (el.btnFinishNewSessionAction) {
+      el.btnFinishNewSessionAction.addEventListener("click", handleFinishNewSession);
     }
 
     // Reset Continuation Sesi
@@ -863,6 +875,32 @@ ${taskText}${attachmentsSection}
 
     updatePromptOutput();
     showToast("Sesi lanjutan direset. Kembali ke prompt mandiri awal.", "info");
+  }
+
+  // Handle Finish & Start Fresh Session
+  function handleFinishNewSession() {
+    state.previousPromptContext = null;
+    state.continuationStep = 1;
+    state.rawTask = "";
+    state.refinedTask = null;
+
+    el.taskInput.value = "";
+    el.taskInput.placeholder = `Tempel atau ketik requirement tugas Anda di sini...
+Contoh:
+- Update PDN.razor tab 1 (Rasio PDN)
+- Ubah fungsi LoadPdnKelompokPage ganti skema etl jadi RASIO_PDN_SEBELUM_TD_VALAS_KELOMPOK
+- Ubah grid jadi LoadPivotAsync dan pasang filter tanggal dan kelompok bank...`;
+
+    if (el.continuationBanner) el.continuationBanner.classList.add("hidden");
+    if (el.btnContinuePrompting) el.btnContinuePrompting.classList.add("hidden");
+    if (el.revisionBox) el.revisionBox.classList.add("hidden");
+    hidePromptEvaluation();
+
+    updatePromptOutput();
+    el.taskInput.focus();
+    el.taskInput.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    showToast("🎉 Sesi selesai! Form dibersihkan dan siap untuk membuat prompt sesi baru.", "success");
   }
 
   // Execute AI Revision based on user's correction note

@@ -7,7 +7,7 @@
   <title>PromptCraft AI - Role & Task Prompt Architect</title>
   <meta name="description"
     content="Aplikasi pembuat prompt AI presisi berbasis Role dan Task dengan fitur perbaikan kalimat otomatis, anti-duplikasi, dan pengujian langsung ke Gemini, Claude, dan AdaCode.">
-  <link rel="stylesheet" href="style.css?v=12">
+  <link rel="stylesheet" href="style.css?v=13">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -251,6 +251,9 @@ Senior Polyglot Full-Stack Engineer ahli dalam SEMUA bahasa pemrograman utama...
                 <button type="button" id="btnConfirmSatisfied" class="btn btn-sm btn-success-glow">
                   ✅ Sudah Sesuai (Lanjutkan Ngeprompt)
                 </button>
+                <button type="button" id="btnFinishNewSession" class="btn btn-sm btn-info-glow" title="Selesaikan prompt ini dan bersihkan untuk sesi prompt baru">
+                  🎉 Selesai (Buat Sesi Baru)
+                </button>
                 <button type="button" id="btnTriggerRevision" class="btn btn-sm btn-outline-warning">
                   ✏️ Belum Sesuai (Revisi)
                 </button>
@@ -268,6 +271,10 @@ Senior Polyglot Full-Stack Engineer ahli dalam SEMUA bahasa pemrograman utama...
               title="Lanjutkan menulis prompt tahap berikutnya dengan asumsi sesi ini">
               <span>🚀 Lanjutkan Ngeprompt (Sesi <span id="btnContStepNum">2</span>)</span>
             </button>
+            <button id="btnFinishNewSessionAction" class="btn btn-lg btn-finish-session"
+              title="Selesaikan rangkaian prompt saat ini dan mulai sesi baru dari awal">
+              <span>🎉 Selesai Buat Sesi Baru</span>
+            </button>
           </div>
         </div>
       </section>
@@ -277,7 +284,7 @@ Senior Polyglot Full-Stack Engineer ahli dalam SEMUA bahasa pemrograman utama...
     <div id="toastContainer" class="toast-container"></div>
   </div>
 
-  <script src="app.js?v=20"></script>
+  <script src="app.js?v=21"></script>
 </body>
 
 </html>
