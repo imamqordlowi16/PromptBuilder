@@ -96,6 +96,8 @@
     aiTestConsole: document.getElementById("aiTestConsole"),
     aiTestToggleHeader: document.getElementById("aiTestToggleHeader"),
     btnCollapseAi: document.getElementById("btnCollapseAi"),
+    serverKeyBanner: document.getElementById("serverKeyBanner"),
+    apiKeyGroup: document.getElementById("apiKeyGroup"),
     aiProviderSelect: document.getElementById("aiProviderSelect"),
     aiModelSelect: document.getElementById("aiModelSelect"),
     aiCustomModelInput: document.getElementById("aiCustomModelInput"),
@@ -117,10 +119,29 @@
     loadSavedAiConfig();
     setupEventListeners();
     checkServerConfig();
+    updateProviderVisibility(state.aiProvider);
 
     // Default Role & Initial Render
     el.roleInput.value = state.role;
     updatePromptOutput();
+  }
+
+  // Manage visibility based on AI Provider
+  function updateProviderVisibility(prov) {
+    if (prov === "gemini") {
+      if (el.serverKeyBanner) el.serverKeyBanner.style.display = "flex";
+      if (el.apiKeyGroup) el.apiKeyGroup.style.display = "none";
+      if (el.customEndpointGroup) el.customEndpointGroup.style.display = "none";
+    } else if (prov === "adacode") {
+      if (el.serverKeyBanner) el.serverKeyBanner.style.display = "none";
+      if (el.apiKeyGroup) el.apiKeyGroup.style.display = "block";
+      if (el.customEndpointGroup) el.customEndpointGroup.style.display = "block";
+    } else {
+      // claude, etc.
+      if (el.serverKeyBanner) el.serverKeyBanner.style.display = "none";
+      if (el.apiKeyGroup) el.apiKeyGroup.style.display = "block";
+      if (el.customEndpointGroup) el.customEndpointGroup.style.display = "none";
+    }
   }
 
   // Check if backend has a pre-configured server key
@@ -212,11 +233,7 @@
     el.aiProviderSelect.addEventListener("change", (e) => {
       const prov = e.target.value;
       state.aiProvider = prov;
-      if (prov === "adacode") {
-        el.customEndpointGroup.style.display = "block";
-      } else {
-        el.customEndpointGroup.style.display = "none";
-      }
+      updateProviderVisibility(prov);
       renderModelOptions(prov);
       saveAiConfig();
     });
@@ -390,7 +407,7 @@
       const apiKey = state.aiApiKey || localStorage.getItem("promptcraft_ai_key");
       let refined = null;
 
-      if ((apiKey && apiKey.trim()) || (state.hasServerKey && state.aiProvider === "gemini")) {
+      if ((apiKey && apiKey.trim()) || state.aiProvider === "gemini") {
         try {
           const res = await fetch("/api/refine", {
             method: "POST",
@@ -553,7 +570,7 @@
     const promptText = compilePrompt();
     const apiKey = el.aiApiKeyInput.value.trim();
 
-    if (!apiKey && (!state.hasServerKey || state.aiProvider !== "gemini")) {
+    if (!apiKey && state.aiProvider !== "gemini") {
       showToast("Silakan masukkan API Key / Session Token terlebih dahulu.", "warning");
       el.aiApiKeyInput.focus();
       return;
@@ -640,9 +657,7 @@
           state.aiApiKey = config.apiKey;
           el.aiApiKeyInput.value = config.apiKey;
         }
-        if (state.aiProvider === "adacode") {
-          el.customEndpointGroup.style.display = "block";
-        }
+        updateProviderVisibility(state.aiProvider);
       }
     } catch (e) {
       console.warn("Cannot load AI config:", e);
