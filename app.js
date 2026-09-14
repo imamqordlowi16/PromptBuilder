@@ -82,6 +82,7 @@
     btnSampleBlazor: document.getElementById("btnSampleBlazor"),
     btnClearTask: document.getElementById("btnClearTask"),
     btnRefineTask: document.getElementById("btnRefineTask"),
+    refineText: document.getElementById("refineText"),
     refineSpinner: document.getElementById("refineSpinner"),
     promptDisplay: document.getElementById("promptDisplay"),
     statRefinedBadge: document.getElementById("statRefinedBadge"),
@@ -390,7 +391,7 @@
     });
   }
 
-  // Intelligent Task Refinement (Auto-Refine)
+  // Intelligent Task Refinement (Auto-Refine powered directly by Gemini Key)
   async function handleRefineTask() {
     const rawText = el.taskInput.value.trim();
     if (!rawText) {
@@ -401,36 +402,41 @@
     // Set Loading State
     el.btnRefineTask.disabled = true;
     el.refineSpinner.classList.remove("hidden");
+    if (el.refineText) el.refineText.textContent = "Merapikan via Gemini 3.6 Flash...";
 
     try {
-      // 1. If API Key is configured, attempt high-precision LLM refinement via backend
-      const apiKey = state.aiApiKey || localStorage.getItem("promptcraft_ai_key");
+      // 1. Attempt high-precision AI refinement via Gemini (using server key or user key)
+      const userKey = (state.aiApiKey || localStorage.getItem("promptcraft_ai_key") || "").trim();
+      const currentProvider = state.aiProvider || "gemini";
+      const currentModel = (state.aiModel && state.aiModel !== "custom") ? state.aiModel : "gemini-3.6-flash";
       let refined = null;
+      let usedAi = false;
 
-      if ((apiKey && apiKey.trim()) || state.aiProvider === "gemini") {
-        try {
-          const res = await fetch("/api/refine", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              task: rawText,
-              role: state.role,
-              provider: state.aiProvider,
-              model: state.aiModel,
-              apiKey: apiKey.trim(),
-              customEndpoint: state.aiEndpoint
-            })
-          });
-          const data = await res.json();
-          if (res.ok && data.refined && data.refined.trim()) {
-            refined = data.refined.trim();
-          }
-        } catch (apiErr) {
-          console.warn("Server refine endpoint fallback to local heuristic:", apiErr);
+      try {
+        const res = await fetch("/api/refine", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            task: rawText,
+            role: state.role,
+            provider: currentProvider,
+            model: currentModel,
+            apiKey: userKey,
+            customEndpoint: state.aiEndpoint
+          })
+        });
+        const data = await res.json();
+        if (res.ok && data.refined && data.refined.trim()) {
+          refined = data.refined.trim();
+          usedAi = true;
+        } else if (!res.ok) {
+          console.warn("API refine returned error:", data.error);
         }
+      } catch (apiErr) {
+        console.warn("API refine failed, fallback to local heuristic:", apiErr);
       }
 
-      // 2. Local Heuristic Refiner (Rock-solid offline parser)
+      // 2. Local Heuristic Refiner (Fallback only if offline/network error)
       if (!refined) {
         refined = cleanAndStructureTaskLocally(rawText);
       }
@@ -438,13 +444,19 @@
       // Apply Refined Text ONLY to the output master prompt (Keep user's input textarea untouched)
       state.refinedTask = refined;
       updatePromptOutput();
-      showToast("✨ Hasil Master Prompt berhasil diperbaiki & dirapikan! (Teks input kiri tetap utuh)", "success");
+
+      if (usedAi) {
+        showToast("✨ Berhasil dirapikan & distrukturkan oleh Gemini 3.6 Flash!", "success");
+      } else {
+        showToast("✨ Hasil Master Prompt dirapikan secara heuristik.", "info");
+      }
 
     } catch (err) {
       showToast("Gagal merapikan teks: " + err.message, "error");
     } finally {
       el.btnRefineTask.disabled = false;
       el.refineSpinner.classList.add("hidden");
+      if (el.refineText) el.refineText.textContent = "Perbaiki & Rapikan Kalimat Task (AI Gemini)";
     }
   }
 
