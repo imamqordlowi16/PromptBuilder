@@ -174,7 +174,7 @@ async function handleTaskRefine(req, res) {
   req.on("end", async () => {
     try {
       const payload = JSON.parse(body || "{}");
-      const { task, role, provider, model, apiKey, customEndpoint } = payload;
+      const { task, role, provider, model, apiKey, customEndpoint, attachments } = payload;
 
       if (!task || !task.trim()) {
         res.writeHead(400, { "Content-Type": "application/json" });
@@ -193,6 +193,18 @@ async function handleTaskRefine(req, res) {
         return res.end(JSON.stringify({ refined: null, note: "No API key provided, use local heuristic" }));
       }
 
+      let attContext = "";
+      if (Array.isArray(attachments) && attachments.length > 0) {
+        attContext = "\n\nBERKAS REFERENSI / LAMPIRAN TERSEDIA:\n" + attachments.map((att, i) => {
+          let s = `[Lampiran ${i + 1}] Nama Berkas: ${att.name || 'Berkas'}`;
+          if (att.size) s += ` (${att.size})`;
+          if (att.content && typeof att.content === "string") {
+            s += `\nCuplikan Kode / Dokumen:\n${att.content.slice(0, 1500)}`;
+          }
+          return s;
+        }).join("\n---\n");
+      }
+
       const refinePrompt = `Kamu adalah Senior Prompt Engineer & Technical Specification Specialist.
 Tugasmu: Perbaiki dan susun ulang teks instruksi / requirement teknis berikut agar menjadi sangat rapi, sistematis, presisi, dan mudah dieksekusi oleh AI coding assistant.
 
@@ -200,12 +212,13 @@ ATURAN PERBAIKAN:
 1. Perbaiki kalimat yang berantakan, typo, atau kalimat panjang yang berulang tanpa mengubah maksud teknis aslinya.
 2. Kelompokkan instruksi ke dalam poin-poin/sub-poin yang runtut dan terstruktur (misal: target fungsi, perubahan skema, filter data, dan pemetaan rujukan).
 3. Buang kata-kata berulang yang tidak perlu agar ringkas dan padat makna.
-4. JANGAN berikan teks pembuka ("Tentu, ini hasilnya...") atau penutup ("Semoga membantu...").
-5. JANGAN menambahkan aturan bahasa pemrograman lain yang tidak ada hubungannya dengan konteks tugas.
-6. Berikan HANYA teks requirement yang sudah diperbaiki dan terstruktur rapi.
+4. Jika terdapat berkas lampiran tertera, kaitkan instruksi tugas dengan nama berkas, fungsi, atau variabel terkait yang relevan.
+5. JANGAN berikan teks pembuka ("Tentu, ini hasilnya...") atau penutup ("Semoga membantu...").
+6. JANGAN menambahkan aturan bahasa pemrograman lain yang tidak ada hubungannya dengan konteks tugas.
+7. Berikan HANYA teks requirement yang sudah diperbaiki dan terstruktur rapi.
 
 Teks instruksi asli:
-${task.trim()}`;
+${task.trim()}${attContext}`;
 
       let refinedText = "";
 

@@ -91,6 +91,48 @@ Contoh:
 - Ubah grid jadi LoadPivotAsync dan pasang filter tanggal dan kelompok bank..."></textarea>
           </div>
 
+          <!-- Attachments Section (Multiple Files, Folders & Copy/Paste) -->
+          <div class="attachments-container" id="attachmentsContainer">
+            <div class="attachments-header">
+              <div class="att-header-title">
+                <span class="att-header-icon">📎</span>
+                <span class="att-header-text">Lampiran & Berkas Referensi</span>
+                <span id="attCountBadge" class="badge badge-sm badge-att hidden">0 Berkas</span>
+              </div>
+              <div class="att-header-actions">
+                <button type="button" id="btnBrowseFiles" class="btn btn-xs btn-outline" title="Pilih satu atau beberapa berkas dari komputer">
+                  📄 Tambah Berkas
+                </button>
+                <button type="button" id="btnBrowseFolder" class="btn btn-xs btn-outline" title="Pilih seluruh berkas dalam satu folder">
+                  📁 Pilih Folder
+                </button>
+                <button type="button" id="btnClearAttachments" class="btn btn-xs btn-ghost btn-danger-text hidden" title="Hapus semua lampiran">
+                  🗑️ Hapus Semua
+                </button>
+              </div>
+            </div>
+
+            <!-- Hidden File & Folder Inputs -->
+            <input type="file" id="fileInput" multiple style="display:none;">
+            <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
+
+            <!-- Drag, Drop & Paste Zone -->
+            <div class="dropzone" id="dropzone" tabindex="0" title="Klik atau seret berkas ke sini, atau tekan Ctrl + V">
+              <div class="dropzone-content">
+                <span class="dropzone-icon">📥</span>
+                <div class="dropzone-text-block">
+                  <p class="dropzone-text">
+                    <strong>Tarik & lepas berkas ke sini</strong>, pilih dari folder, atau tekan <code>Ctrl + V</code> untuk menempel kode / berkas
+                  </p>
+                  <span class="dropzone-sub">Mendukung majemuk: .razor, .cs, .sql, .ts, .js, .json, .xlsx, .txt, dll.</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Attached Files List -->
+            <div class="attachments-list" id="attachmentsList"></div>
+          </div>
+
           <!-- Action Bar Auto-Perbaiki -->
           <div class="refine-action-bar">
             <button id="btnRefineTask" class="btn btn-refine" title="Perbaiki dan rapikan susunan kalimat tugas yang berantakan">
@@ -155,6 +197,6 @@ Senior Polyglot Full-Stack Engineer ahli dalam SEMUA bahasa pemrograman utama...
     <div id="toastContainer" class="toast-container"></div>
   </div>
 
-  <script src="app.js?v=14"></script>
+  <script src="app.js?v=15"></script>
 </body>
 </html>
