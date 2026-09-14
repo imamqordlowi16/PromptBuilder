@@ -174,7 +174,7 @@ async function handleTaskRefine(req, res) {
   req.on("end", async () => {
     try {
       const payload = JSON.parse(body || "{}");
-      const { task, role, provider, model, apiKey, customEndpoint, attachments } = payload;
+      const { task, role, provider, model, apiKey, customEndpoint, attachments, codebaseTree, techStack } = payload;
 
       if (!task || !task.trim()) {
         res.writeHead(400, { "Content-Type": "application/json" });
@@ -193,32 +193,61 @@ async function handleTaskRefine(req, res) {
         return res.end(JSON.stringify({ refined: null, note: "No API key provided, use local heuristic" }));
       }
 
-      let attContext = "";
+      // Format Codebase Architecture & Files Context
+      let codebaseSection = "";
+      if (codebaseTree && codebaseTree.trim()) {
+        codebaseSection += `\n\n### STRUKTUR DIREKTORI & POHON BERKAS PROYEK:\n\`\`\`\n${codebaseTree.trim()}\n\`\`\`\n`;
+      }
+      if (techStack && techStack.trim()) {
+        codebaseSection += `\nTeknologi & Framework Terdeteksi: ${techStack.trim()}\n`;
+      }
+
       if (Array.isArray(attachments) && attachments.length > 0) {
-        attContext = "\n\nBERKAS REFERENSI / LAMPIRAN TERSEDIA:\n" + attachments.map((att, i) => {
-          let s = `[Lampiran ${i + 1}] Nama Berkas: ${att.name || 'Berkas'}`;
-          if (att.size) s += ` (${att.size})`;
+        codebaseSection += "\n\n### KONTEN & CUPLIKAN BERKAS SUMBER KODE:\n" + attachments.map((att, i) => {
+          let s = `[File ${i + 1}] ${att.name || 'Berkas'} (${att.size || ''})${att.isTarget ? ' ★ [BERKAS TARGET UTAMA - DISEBUT DALAM TASK]' : ''}`;
           if (att.content && typeof att.content === "string") {
-            s += `\nCuplikan Kode / Dokumen:\n${att.content.slice(0, 1500)}`;
+            s += `\n\`\`\`${att.ext || ''}\n${att.content}\n\`\`\``;
+          } else {
+            s += `\n*(Berkas non-teks / rujukan format)*`;
           }
           return s;
         }).join("\n---\n");
       }
 
-      const refinePrompt = `Kamu adalah Senior Prompt Engineer & Technical Specification Specialist.
-Tugasmu: Perbaiki dan susun ulang teks instruksi / requirement teknis berikut agar menjadi sangat rapi, sistematis, presisi, dan mudah dieksekusi oleh AI coding assistant.
+      const refinePrompt = `Kamu adalah Principal Software Architect & Expert AI Prompt Engineer.
+Tugasmu: Analisis secara mendalam struktur folder, pohon hierarki berkas, alur logika program, dan hubungan antar-komponen dari codebase yang dilampirkan. Kemudian susun ulang teks instruksi pengguna agar menjadi spesifikasi requirement teknis yang SANGAT DETAIL, PRESISI, DAN PAHAM ALUR SISTEM.
 
-ATURAN PERBAIKAN:
-1. Perbaiki kalimat yang berantakan, typo, atau kalimat panjang yang berulang tanpa mengubah maksud teknis aslinya.
-2. Kelompokkan instruksi ke dalam poin-poin/sub-poin yang runtut dan terstruktur (misal: target fungsi, perubahan skema, filter data, dan pemetaan rujukan).
-3. Buang kata-kata berulang yang tidak perlu agar ringkas dan padat makna.
-4. Jika terdapat berkas lampiran tertera, kaitkan instruksi tugas dengan nama berkas, fungsi, atau variabel terkait yang relevan.
-5. JANGAN berikan teks pembuka ("Tentu, ini hasilnya...") atau penutup ("Semoga membantu...").
-6. JANGAN menambahkan aturan bahasa pemrograman lain yang tidak ada hubungannya dengan konteks tugas.
-7. Berikan HANYA teks requirement yang sudah diperbaiki dan terstruktur rapi.
+PANDUAN PEMAHAMAN STRUKTUR & ALUR KODE:
+1. TELUSURI PERAN BERKAS:
+   - Identifikasi mana berkas yang menjadi komponen UI (View/Page/Component).
+   - Identifikasi mana berkas yang menjadi service / logic layer (ETL, API, Controller, Handler, Database).
+   - Identifikasi berkas yang menjadi referensi logika (misal: "ambil logic dari PUAB.razor") atau referensi lembar kerja (Excel/SQL/JSON).
+2. PAHAMI ALUR DATA (DATA & LOGIC FLOW):
+   - Hubungkan instruksi pengguna dengan alur kerja nyata: mulai dari filter/input UI, pemanggilan method async, skema ETL/database yang dieksekusi, hingga binding data pada grid/tabel.
+3. BUAT INSTRUKSI KONKRET & SPESIFIK:
+   - Gunakan nama berkas asli, nama method asli (misal: LoadPdnKelompokPage, LoadPivotAsync), nama skema ETL asli, dan nama variabel asli yang terdapat di dalam berkas terlampir.
+   - Jangan berasumsi generik; ground instruksi pada kode yang ada.
 
-Teks instruksi asli:
-${task.trim()}${attContext}`;
+FORMAT OUTPUT YANG DIHASILKAN (Langsung sajikan teks requirement tanpa salam atau basa-basi pembuka/penutup):
+🎯 RINGKASAN & ALUR KERJA:
+(Jelaskan tujuan perubahan dan bagaimana alur teknisnya menghubungkan komponen serta data layer)
+
+📁 BERKAS TARGET & RUJUKAN:
+- Target Modifikasi: [Path berkas yang akan diubah & komponen terkait]
+- Acuan Logika / Referensi: [Path berkas rujukan dan apa yang disalin/diadaptasi darinya]
+
+🛠️ RINCIAN LANGKAH IMPLEMENTASI TEKNIS:
+(Uraikan secara bertahap per fungsi/method/bagian dengan poin-poin terstruktur: perubahan nama skema, adaptasi method grid, pembuatan parameter filter reaktif, dan pemetaan kolom)
+
+🔄 ALUR INTEGRASI & DEPENDENSI:
+(Jelaskan bagaimana komponen berinteraksi dengan service/etl dan bagaimana logic rujukan diterapkan)
+
+✅ KRITERIA VALIDASI & PENCEGAHAN REGRESI:
+(Kondisi yang harus dipenuhi: reaktifitas form, validasi null, konsistensi data, dan fokus terisolasi agar tidak merusak bagian lain)
+
+Teks Instruksi Asli Pengguna:
+${task.trim()}
+${codebaseSection}`;
 
       let refinedText = "";
 

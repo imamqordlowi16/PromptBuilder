@@ -715,7 +715,69 @@ ${taskText}${attachmentsSection}
     });
   }
 
-  // Intelligent Task Refinement (Powered by Embedded Gemini Key)
+  // Analyze Codebase Architecture, Directory Tree & Prioritize Relevant Files
+  function analyzeCodebaseContext(rawTask, attachments) {
+    if (!attachments || attachments.length === 0) {
+      return { tree: "", techStack: "", smartAttachments: [] };
+    }
+
+    // 1. Detect Frameworks / Languages
+    const extCounts = {};
+    attachments.forEach(a => {
+      const ext = a.ext ? a.ext.toLowerCase() : "txt";
+      extCounts[ext] = (extCounts[ext] || 0) + 1;
+    });
+
+    const detectedTech = [];
+    if (extCounts["razor"] || extCounts["cs"]) detectedTech.push(".NET / C# & Blazor");
+    if (extCounts["ts"] || extCounts["tsx"]) detectedTech.push("TypeScript / Modern Frontend");
+    if (extCounts["js"] || extCounts["jsx"]) detectedTech.push("JavaScript / Node.js");
+    if (extCounts["py"]) detectedTech.push("Python");
+    if (extCounts["sql"]) detectedTech.push("SQL Database");
+    if (extCounts["go"]) detectedTech.push("Golang");
+    if (extCounts["java"] || extCounts["kt"]) detectedTech.push("Java / Kotlin");
+    if (extCounts["xlsx"] || extCounts["xls"] || extCounts["csv"]) detectedTech.push("Spreadsheet Data Reference");
+
+    const techStack = detectedTech.join(", ") || "General Source Code";
+
+    // 2. Build Directory Tree
+    const paths = attachments.map(a => a.name).sort();
+    let tree = "";
+    if (paths.length <= 80) {
+      tree = paths.map(p => `├── ${p}`).join("\n");
+    } else {
+      tree = paths.slice(0, 60).map(p => `├── ${p}`).join("\n") + `\n└── ... dan ${paths.length - 60} berkas lainnya`;
+    }
+
+    // 3. Smart Attachment Prioritization based on user task mentions
+    const lowerTask = (rawTask || "").toLowerCase();
+    const smartAttachments = attachments.map(att => {
+      const baseName = att.name.split("/").pop().toLowerCase();
+      const isTarget = lowerTask.includes(baseName) || (att.name && lowerTask.includes(att.name.toLowerCase()));
+      
+      let contentSnippet = "";
+      if (att.content && typeof att.content === "string") {
+        // Target files get generous content up to 5000 chars, others up to 1600 chars
+        const maxLen = isTarget ? 5000 : 1600;
+        contentSnippet = att.content.slice(0, maxLen);
+        if (att.content.length > maxLen) {
+          contentSnippet += "\n... (cuplikan berlanjut)";
+        }
+      }
+
+      return {
+        name: att.name,
+        size: att.sizeFormatted,
+        ext: att.ext,
+        isTarget,
+        content: contentSnippet
+      };
+    });
+
+    return { tree, techStack, smartAttachments };
+  }
+
+  // Intelligent Task Refinement (Powered by Embedded Gemini Key with Deep Codebase Analysis)
   async function handleRefineTask() {
     const rawText = el.taskInput.value.trim();
     if (!rawText) {
@@ -723,23 +785,25 @@ ${taskText}${attachmentsSection}
       return;
     }
 
+    const hasAttachments = state.attachments.length > 0;
+
     // Set Loading State
     el.btnRefineTask.disabled = true;
     el.refineSpinner.classList.remove("hidden");
-    if (el.refineText) el.refineText.textContent = "Merapikan via Gemini 3.6 Flash...";
+    if (el.refineText) {
+      el.refineText.textContent = hasAttachments 
+        ? "🧠 Menganalisis alur & struktur berkas (Gemini)..." 
+        : "Merapikan via Gemini 3.6 Flash...";
+    }
 
     try {
       let refined = null;
       let usedAi = false;
 
-      // Prepare lightweight attachment metadata for Gemini
-      const attMeta = state.attachments.map(a => ({
-        name: a.name,
-        size: a.sizeFormatted,
-        content: a.content ? a.content.slice(0, 2000) : ""
-      }));
+      // Analyze Codebase Architecture, Directory Tree & Prioritize Files
+      const { tree, techStack, smartAttachments } = analyzeCodebaseContext(rawText, state.attachments);
 
-      // Call Backend Refine Endpoint (Securely connects with embedded Gemini Key)
+      // Call Backend Refine Endpoint
       try {
         const res = await fetch("/api/refine", {
           method: "POST",
@@ -749,7 +813,9 @@ ${taskText}${attachmentsSection}
             role: state.role,
             provider: "gemini",
             model: "gemini-3.6-flash",
-            attachments: attMeta
+            attachments: smartAttachments,
+            codebaseTree: tree,
+            techStack: techStack
           })
         });
 
@@ -769,12 +835,18 @@ ${taskText}${attachmentsSection}
         refined = cleanAndStructureTaskLocally(rawText);
       }
 
-      // Apply Refined Text ONLY to the output master prompt (Keep user's input textarea untouched)
+      // Update both task input textarea and master prompt state so user can see & edit
       state.refinedTask = refined;
+      el.taskInput.value = refined;
+      state.rawTask = refined;
       updatePromptOutput();
 
       if (usedAi) {
-        showToast("✨ Berhasil dirapikan & distrukturkan oleh Gemini 3.6 Flash!", "success");
+        if (hasAttachments) {
+          showToast(`✨ Sukses! Task dipahami & disusun berdasarkan alur ${state.attachments.length} berkas!`, "success");
+        } else {
+          showToast("✨ Berhasil dirapikan & distrukturkan oleh Gemini 3.6 Flash!", "success");
+        }
       } else {
         showToast("✨ Hasil Master Prompt dirapikan secara heuristik.", "info");
       }
