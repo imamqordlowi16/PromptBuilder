@@ -39,9 +39,38 @@
     role: ROLE_PRESETS.fullstack_engineer,
     task: "",
     aiProvider: "gemini",
-    aiModel: "gemini-2.5-flash",
+    aiModel: "gemini-3-flash",
     aiEndpoint: "",
     aiApiKey: ""
+  };
+
+  // Provider Models Catalog (Dropdown Options)
+  const PROVIDER_MODELS = {
+    gemini: [
+      { value: "gemini-3-flash", label: "Gemini 3 Flash (Terbaru, Cepat & Cerdas) ⭐ Default", default: true },
+      { value: "gemini-3-pro", label: "Gemini 3 Pro (Penalaran Kompleks & Kode Arsitektur)" },
+      { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+      { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
+      { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+      { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro (Long Context)" },
+      { value: "custom", label: "✏️ Ketik Nama Model Lain (Kustom)" }
+    ],
+    claude: [
+      { value: "claude-3-7-sonnet-latest", label: "Claude 3.7 Sonnet (Hybrid Reasoning) ⭐ Rekomendasi", default: true },
+      { value: "claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet v2" },
+      { value: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku (Super Cepat)" },
+      { value: "claude-3-opus-latest", label: "Claude 3 Opus" },
+      { value: "custom", label: "✏️ Ketik Nama Model Lain (Kustom)" }
+    ],
+    adacode: [
+      { value: "default", label: "AdaCode Sesi Aktif (Default IDE)", default: true },
+      { value: "gpt-4o", label: "GPT-4o (Omni Model)" },
+      { value: "gpt-4o-mini", label: "GPT-4o Mini" },
+      { value: "o3-mini", label: "o3-mini Reasoning" },
+      { value: "claude-3.7-sonnet", label: "Claude 3.7 Sonnet (Proxy Sesi)" },
+      { value: "deepseek-chat", label: "DeepSeek V3 / R1" },
+      { value: "custom", label: "✏️ Ketik Nama Model Lain (Kustom)" }
+    ]
   };
 
   // DOM Elements
@@ -65,7 +94,8 @@
     aiTestToggleHeader: document.getElementById("aiTestToggleHeader"),
     btnCollapseAi: document.getElementById("btnCollapseAi"),
     aiProviderSelect: document.getElementById("aiProviderSelect"),
-    aiModelInput: document.getElementById("aiModelInput"),
+    aiModelSelect: document.getElementById("aiModelSelect"),
+    aiCustomModelInput: document.getElementById("aiCustomModelInput"),
     customEndpointGroup: document.getElementById("customEndpointGroup"),
     aiEndpointInput: document.getElementById("aiEndpointInput"),
     aiApiKeyInput: document.getElementById("aiApiKeyInput"),
@@ -152,24 +182,36 @@
     el.aiProviderSelect.addEventListener("change", (e) => {
       const prov = e.target.value;
       state.aiProvider = prov;
-      if (prov === "claude") {
-        el.aiModelInput.value = "claude-3-7-sonnet-latest";
-        el.customEndpointGroup.style.display = "none";
-      } else if (prov === "adacode") {
-        el.aiModelInput.value = "default";
+      if (prov === "adacode") {
         el.customEndpointGroup.style.display = "block";
       } else {
-        el.aiModelInput.value = "gemini-2.5-flash";
         el.customEndpointGroup.style.display = "none";
+      }
+      renderModelOptions(prov);
+      saveAiConfig();
+    });
+
+    // Model Dropdown Change
+    el.aiModelSelect.addEventListener("change", (e) => {
+      const val = e.target.value;
+      if (val === "custom") {
+        el.aiCustomModelInput.style.display = "block";
+        el.aiCustomModelInput.focus();
+        state.aiModel = el.aiCustomModelInput.value.trim();
+      } else {
+        el.aiCustomModelInput.style.display = "none";
+        state.aiModel = val;
       }
       saveAiConfig();
     });
 
-    // Model & Endpoint Input
-    el.aiModelInput.addEventListener("input", (e) => {
-      state.aiModel = e.target.value;
+    // Custom Model Input
+    el.aiCustomModelInput.addEventListener("input", (e) => {
+      state.aiModel = e.target.value.trim();
       saveAiConfig();
     });
+
+    // Endpoint Input
     el.aiEndpointInput.addEventListener("input", (e) => {
       state.aiEndpoint = e.target.value;
       saveAiConfig();
@@ -406,6 +448,26 @@
     }
   }
 
+  // Render Model Dropdown Options dynamically
+  function renderModelOptions(provider, selectedModel) {
+    const models = PROVIDER_MODELS[provider] || PROVIDER_MODELS.gemini;
+    el.aiModelSelect.innerHTML = models.map(m => {
+      const isSelected = selectedModel ? m.value === selectedModel : m.default;
+      return `<option value="${m.value}" ${isSelected ? 'selected' : ''}>${m.label}</option>`;
+    }).join("");
+
+    const isCustom = el.aiModelSelect.value === "custom" || (!models.some(m => m.value === selectedModel) && selectedModel);
+    if (isCustom) {
+      el.aiModelSelect.value = "custom";
+      el.aiCustomModelInput.style.display = "block";
+      el.aiCustomModelInput.value = selectedModel || "";
+      state.aiModel = selectedModel || "";
+    } else {
+      el.aiCustomModelInput.style.display = "none";
+      state.aiModel = el.aiModelSelect.value;
+    }
+  }
+
   // Run Prompt Directly in AI
   async function handleRunAiTest() {
     const promptText = compilePrompt();
@@ -417,12 +479,16 @@
       return;
     }
 
+    const effectiveModel = (el.aiModelSelect.value === "custom")
+      ? (el.aiCustomModelInput.value.trim() || state.aiModel)
+      : el.aiModelSelect.value;
+
     // Set UI Loading
     el.btnRunAiTest.disabled = true;
     el.aiRunSpinner.classList.remove("hidden");
     el.runAiText.textContent = "Menghubungi AI...";
     el.aiResponseContainer.classList.remove("hidden");
-    el.aiResponseContent.textContent = "Sedang memproses prompt dan menunggu respon AI...";
+    el.aiResponseContent.textContent = `Sedang mengeksekusi ke model ${effectiveModel}... Menunggu respon...`;
 
     try {
       const res = await fetch("/api/generate", {
@@ -430,7 +496,7 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider: state.aiProvider,
-          model: el.aiModelInput.value.trim() || state.aiModel,
+          model: effectiveModel,
           apiKey: apiKey,
           prompt: promptText,
           customEndpoint: el.aiEndpointInput.value.trim()
@@ -459,7 +525,7 @@
   function saveAiConfig() {
     const config = {
       provider: state.aiProvider,
-      model: el.aiModelInput.value.trim(),
+      model: state.aiModel,
       endpoint: el.aiEndpointInput.value.trim(),
       apiKey: el.aiApiKeyInput.value.trim()
     };
@@ -473,30 +539,33 @@
   function loadSavedAiConfig() {
     try {
       const raw = localStorage.getItem("promptcraft_ai_config");
-      if (!raw) return;
-      const config = JSON.parse(raw);
-      if (config.provider) {
-        state.aiProvider = config.provider;
-        el.aiProviderSelect.value = config.provider;
-      }
-      if (config.model) {
-        state.aiModel = config.model;
-        el.aiModelInput.value = config.model;
-      }
-      if (config.endpoint) {
-        state.aiEndpoint = config.endpoint;
-        el.aiEndpointInput.value = config.endpoint;
-      }
-      if (config.apiKey) {
-        state.aiApiKey = config.apiKey;
-        el.aiApiKeyInput.value = config.apiKey;
-      }
-      if (state.aiProvider === "adacode") {
-        el.customEndpointGroup.style.display = "block";
+      if (raw) {
+        const config = JSON.parse(raw);
+        if (config.provider) {
+          state.aiProvider = config.provider;
+          el.aiProviderSelect.value = config.provider;
+        }
+        if (config.model) {
+          state.aiModel = config.model;
+        }
+        if (config.endpoint) {
+          state.aiEndpoint = config.endpoint;
+          el.aiEndpointInput.value = config.endpoint;
+        }
+        if (config.apiKey) {
+          state.aiApiKey = config.apiKey;
+          el.aiApiKeyInput.value = config.apiKey;
+        }
+        if (state.aiProvider === "adacode") {
+          el.customEndpointGroup.style.display = "block";
+        }
       }
     } catch (e) {
       console.warn("Cannot load AI config:", e);
     }
+
+    // Populate model dropdown
+    renderModelOptions(state.aiProvider, state.aiModel);
   }
 
   // Toast Notification System

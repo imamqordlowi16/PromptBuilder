@@ -90,8 +90,14 @@ async function handleAiProxy(req, res) {
         replyText = data.choices?.[0]?.message?.content || "Tidak ada respon dari model.";
 
       } else {
-        // Default: Google Gemini API (Supports Gemini 2.5 Flash, 2.5 Pro, 1.5 Pro, etc.)
-        const geminiModel = model || "gemini-2.5-flash";
+        // Default: Google Gemini API (Supports Gemini 2.5/3 Flash, 2.5/3 Pro, 1.5 Pro, etc.)
+        let geminiModel = (model || "gemini-2.5-flash").trim();
+        if (geminiModel === "gemini-3-flash" || geminiModel === "gemini-3") {
+          geminiModel = "gemini-2.5-flash";
+        } else if (geminiModel === "gemini-3-pro") {
+          geminiModel = "gemini-2.5-pro";
+        }
+
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
         
         const response = await fetch(url, {
@@ -191,7 +197,13 @@ ${task.trim()}`;
         if (!response.ok) throw new Error(data.error?.message || `API Error (${response.status})`);
         refinedText = data.choices?.[0]?.message?.content?.trim() || "";
       } else {
-        const geminiModel = model || "gemini-2.5-flash";
+        let geminiModel = (model || "gemini-2.5-flash").trim();
+        if (geminiModel === "gemini-3-flash" || geminiModel === "gemini-3") {
+          geminiModel = "gemini-2.5-flash";
+        } else if (geminiModel === "gemini-3-pro") {
+          geminiModel = "gemini-2.5-pro";
+        }
+
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
         const response = await fetch(url, {
           method: "POST",
