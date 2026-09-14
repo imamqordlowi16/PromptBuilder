@@ -1,6 +1,42 @@
 // data/templates.js - Koleksi Preset Prompt Ahli Siap Pakai
 const PROMPT_TEMPLATES = [
   {
+    id: "tech_blazor_etl_refactor",
+    title: "Update Fitur Blazor .NET, Skema ETL & Dynamic Data Grid",
+    category: "tech_software",
+    expertId: "fullstack_engineer",
+    frameworkId: "costar",
+    badge: "Enterprise .NET",
+    data: {
+      context: "Sedang dilakukan update requirement khusus pada komponen Blazor {{file_target}} pada bagian {{target_tab}}. Diperlukan penyesuaian skema ETL, pemanggilan dynamic grid, pengiriman parameter filter tanggal dan kategori, serta adopsi logika pemetaan kolom tertentu dari {{file_reference}}.",
+      objective: "Lakukan update pada function {{function_1}} dan {{function_2}}:\n1. Ganti skema ETL lama ({{etl_lama_1}}) menjadi skema baru ({{etl_baru_1}}) dan ubah method grid menjadi {{grid_method}}.\n2. Buat filter dinamis dari {{filter_source_1}} dan {{filter_source_2}} lalu lempar nilainya ke skema ETL.\n3. Tampilkan kolom pada grid sesuai spesifikasi tabel excel rujukan ({{excel_reference}}).\n4. Khusus kolom {{kolom_khusus}} yang tidak disediakan ETL, adopsi logika ekstraksi datanya persis seperti implementasi di {{file_reference}}. Kolom lainnya tetap diambil dari ETL.\n5. Pastikan filter bekerja reaktif dan data tertampil sesuai output ETL.",
+      style: "Staff .NET Blazor Specialist & Full-Stack Architect",
+      tone: "Sangat teknis, teliti, aman dari regresi kode (terisolasi pada tab target)",
+      audience: "Software Engineer, .NET C# Developer, dan Tech Lead",
+      response: "Kode C# revisi lengkap untuk function yang diubah, snippet markup Blazor (.razor) untuk filter parameter binding, dan catatan penjelas logika adopsi tanpa merusak tab lainnya."
+    },
+    constraints: [
+      "JANGAN ubah struktur HTML atau logika kode di luar tab target (isolasi ketat agar tidak terjadi regresi).",
+      "Wajib gunakan async/await dan bungkus pemanggilan grid dalam try-catch dengan error handling & null-check.",
+      "Pastikan binding filter dinamis dan reaktif (trigger refresh grid saat tanggal/kategori berubah).",
+      "Pertahankan namespace, dependency injection, dan method lifecycle Blazor yang sudah ada."
+    ],
+    variables: [
+      { name: "file_target", default: "PDN.razor" },
+      { name: "target_tab", default: "Tab 1 (Rasio PDN)" },
+      { name: "file_reference", default: "PUAB.razor" },
+      { name: "function_1", default: "LoadPdnKelompokPage" },
+      { name: "function_2", default: "LoadPdnIndividualPage" },
+      { name: "etl_lama_1", default: "DATA_PDN_ABSOLUT_MODAL2" },
+      { name: "etl_baru_1", default: "RASIO_PDN_SEBELUM_TD_VALAS_KELOMPOK" },
+      { name: "grid_method", default: "LoadPivotAsync" },
+      { name: "filter_source_1", default: "Datetime Picker Posisi Laporan" },
+      { name: "filter_source_2", default: "Kelompok Bank" },
+      { name: "excel_reference", default: "MONITORING-HARIAN-AGREGASI-PDN_RASIO PDN.xlsx" },
+      { name: "kolom_khusus", default: "Kelompok Bank & Bank" }
+    ]
+  },
+  {
     id: "tech_clean_arch_refactor",
     title: "Refactoring Sistem ke Clean Architecture & SOLID",
     category: "tech_software",
