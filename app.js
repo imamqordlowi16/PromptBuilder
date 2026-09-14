@@ -83,6 +83,7 @@
     btnRefineTask: document.getElementById("btnRefineTask"),
     refineSpinner: document.getElementById("refineSpinner"),
     promptDisplay: document.getElementById("promptDisplay"),
+    statScore: document.getElementById("statScore"),
     statChars: document.getElementById("statChars"),
     statWords: document.getElementById("statWords"),
     statTokens: document.getElementById("statTokens"),
@@ -258,6 +259,29 @@
     return prompt;
   }
 
+  // Calculate Prompt Precision Rate (0 - 100%)
+  function calculatePromptScore(role, task) {
+    let score = 25; // Base score
+    
+    // Evaluate Role
+    const r = (role || "").trim();
+    if (r.length > 20) score += 15;
+    if (/(senior|principal|architect|engineer|specialist|expert|lead|master|polyglot)/i.test(r)) score += 10;
+    
+    // Evaluate Task
+    const t = (task || "").trim();
+    if (t.length > 30) score += 10;
+    if (t.length > 100) score += 10;
+    
+    // Structure (bullet points or numbered list)
+    if (/^[-*•\d.)]/m.test(t)) score += 15;
+    
+    // Specificity (mentions code entities, filenames, etl, function, sql, filter, etc.)
+    if (/(\.razor|\.cs|\.py|\.js|\.ts|\.json|\.xlsx|\.sql|function|skema|etl|grid|filter|class|api|table)/i.test(t)) score += 15;
+    
+    return Math.min(100, Math.max(0, score));
+  }
+
   // Update Live Preview Output
   function updatePromptOutput() {
     const compiled = compilePrompt();
@@ -271,6 +295,23 @@
     el.statChars.textContent = `${chars} Karakter`;
     el.statWords.textContent = `${words} Kata`;
     el.statTokens.textContent = `~${tokens} Token`;
+
+    // Prompt Precision Rate (%)
+    const score = calculatePromptScore(state.role, state.task);
+    if (el.statScore) {
+      el.statScore.textContent = `🎯 Presisi: ${score}%`;
+      el.statScore.className = "badge badge-score";
+      if (score >= 85) {
+        el.statScore.classList.add("score-high");
+        el.statScore.title = "Tingkat Presisi Sangat Tinggi (Prompt Siap Eksekusi Optimal)";
+      } else if (score >= 60) {
+        el.statScore.classList.add("score-med");
+        el.statScore.title = "Tingkat Presisi Sedang (Bagus, bisa dirapikan lagi jika perlu)";
+      } else {
+        el.statScore.classList.add("score-low");
+        el.statScore.title = "Tingkat Presisi Rendah (Lengkapi task atau klik tombol ✨ Perbaiki)";
+      }
+    }
   }
 
   // Copy Prompt to Clipboard
