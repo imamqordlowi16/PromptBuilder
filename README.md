@@ -1,6 +1,46 @@
 # ⚡ PromptCraft Studio — AI Prompt Builder & Multi-Domain Expert Architect
 
-Aplikasi canggih untuk rekayasa prompt (Prompt Engineering) berbasis web dengan kapabilitas **Pakar di Semua Bidang** (*Multi-Domain System Persona*), framework prompt teruji standar global, sistem penilai kualitas prompt (*Prompt Grader*), dan testing playground terintegrasi.
+Aplikasi canggih untuk rekayasa prompt (*Prompt Engineering*) berbasis web dengan kapabilitas **Pakar di Semua Bidang** (*Multi-Domain System Persona*), framework prompt teruji standar global, sistem penilai kualitas prompt (*Prompt Grader*), testing playground terintegrasi, serta siap di-deploy langsung ke **Render** atau cloud hosting lainnya.
+
+---
+
+## 🌐 Panduan Deploy ke Render (Akses Online Publik)
+
+Aplikasi ini sudah dilengkapi dengan `render.yaml`, `server.js`, dan `package.json` siap produksi sehingga dapat di-deploy ke **Render** secara gratis dan instan.
+
+### Langkah 1: Buat Repository di GitHub
+1. Buka [GitHub](https://github.com/) dan buat repository baru (misalnya: `PromptCraft-Studio`).
+2. Hubungkan folder lokal Anda dan push kode ke GitHub dengan perintah berikut di terminal:
+   ```bash
+   git remote add origin https://github.com/<username-anda>/PromptCraft-Studio.git
+   git branch -M main
+   git push -u origin main
+   ```
+
+### Langkah 2: Deploy di Render (render.com)
+1. Buka dashboard [Render.com](https://dashboard.render.com/) (buat akun gratis jika belum punya).
+2. Klik tombol **New +** di pojok kanan atas, lalu pilih **Web Service** (atau **Blueprint**):
+   - **Opsi A (Via Web Service)**:
+     - Pilih **Build and deploy from a Git repository**.
+     - Sambungkan repository GitHub yang telah Anda buat tadi.
+     - Isikan pengaturan berikut:
+       - **Name**: `promptcraft-studio` (atau nama pilihan Anda)
+       - **Environment**: `Node`
+       - **Region**: Bebas (misal: *Singapore* untuk akses tercepat dari Indonesia)
+       - **Branch**: `main`
+       - **Build Command**: *(kosongkan atau biarkan kosong)*
+       - **Start Command**: `npm start` (atau `node server.js`)
+       - **Instance Type**: `Free`
+     - Klik **Create Web Service**.
+   - **Opsi B (Via Render Blueprint)**:
+     - Pilih **New +** -> **Blueprint**.
+     - Sambungkan repository GitHub Anda. Render akan otomatis membaca file `render.yaml` dan mengonfigurasi segalanya secara otomatis!
+
+### Langkah 3: Akses Aplikasi
+Dalam 1–2 menit, Render akan mempublikasikan aplikasi Anda dengan URL HTTPS publik aktif, contoh:
+`https://promptcraft-studio.onrender.com`
+
+Aplikasi kini dapat diakses oleh siapa saja dari mana saja melalui HP, laptop, atau tablet!
 
 ---
 
@@ -33,7 +73,7 @@ Aplikasi menyediakan persona pakar siap pakai dengan prinsip berpikir (*principl
 - **✨ Magic Enhance**: Tombol otomatis untuk mengubah ide kasar menjadi prompt terstruktur kelas enterprise.
 - **🏷️ Variabel Dinamis**: Otomatis mendeteksi placeholder `{{nama_variabel}}` dan menyediakannya sebagai input form yang interaktif.
 - **🛑 Batasan Negatif & Guardrails**: Mencegah halusinasi model dengan aturan batasan tegas.
-- **🎯 Few-Shot Examples**: Tambahkan pasangan contoh input/output ideal untuk mengunci akurasi model hingga 80%+.
+- **🎯 Few-Shot Learning**: Pasangan contoh input/output ideal untuk mengunci akurasi model hingga 80%+.
 - **📊 Real-Time Quality Grader**: Menilai kejelasan peran, kedalaman konteks, batasan, dan format respon dengan skor persentase (0–100%) dan saran perbaikan langsung.
 - **📚 Bank Template Prompt**: Koleksi 30+ template siap pakai untuk berbagai industri.
 - **🚀 Live Playground & Simulator**: Simulasi penalaran lokal instan atau pengujian langsung ke model Google Gemini (Gemini 2.5 Flash) menggunakan API Key Anda.
@@ -41,29 +81,16 @@ Aplikasi menyediakan persona pakar siap pakai dengan prinsip berpikir (*principl
 
 ---
 
-## 🚀 Cara Menjalankan Aplikasi
+## 🖥️ Menjalankan Secara Lokal
 
-Aplikasi ini dibangun murni menggunakan standar web modern (Vanilla HTML5, CSS3 Glassmorphism, JavaScript ES6+) tanpa memerlukan proses kompilasi (*zero build step*).
-
-### Opsi 1: Buka Langsung di Browser
-Cukup klik ganda (double-click) file `index.html` atau buka melalui browser apa pun:
-```
-file:///c:/ZeenIQTools/PromptBuilder/index.html
-```
-
-### Opsi 2: Jalankan Melalui Local Web Server
-Jika ingin menjalankan server lokal (misalnya menggunakan Python atau Node.js):
-
-Menggunakan Node.js:
 ```bash
-npx serve c:\ZeenIQTools\PromptBuilder
-```
+# Menggunakan Node.js
+npm start
 
-Atau menggunakan Python:
-```bash
-python -m http.server 3000 --directory c:\ZeenIQTools\PromptBuilder
+# Atau menggunakan Python
+python -m http.server 8085
 ```
-Lalu buka `http://localhost:3000` di browser Anda.
+Buka browser di `http://localhost:10000` (Node) atau `http://localhost:8085` (Python).
 
 ---
 
@@ -71,12 +98,16 @@ Lalu buka `http://localhost:3000` di browser Anda.
 
 ```
 c:\ZeenIQTools\PromptBuilder\
-├── index.html            # Struktur antarmuka web semantik
-├── style.css             # Design system modern, tema gelap & glassmorphism
-├── app.js                # State management, kompilasi prompt, grader & API runner
+├── index.html            # Antarmuka web utama
+├── style.css             # Tema modern glassmorphism & responsive design
+├── app.js                # Logika aplikasi & playground runner
+├── server.js             # Server HTTP Node.js production-ready untuk Render
+├── package.json          # Node manifest & start scripts
+├── render.yaml           # Konfigurasi Render Blueprint
+├── .gitignore            # Git ignore file
 ├── data/
-│   ├── experts.js        # Matrix persona pakar multi-disiplin
-│   ├── frameworks.js     # Framework prompt engineering (CO-STAR, CoT, ToT, dll.)
-│   └── templates.js      # Bank template prompt siap pakai
-└── README.md             # Dokumentasi lengkap
+│   ├── experts.js        # Persona pakar di semua bidang
+│   ├── frameworks.js     # Framework prompt engineering
+│   └── templates.js      # Bank preset prompt siap pakai
+└── README.md             # Panduan lengkap & deployment
 ```
