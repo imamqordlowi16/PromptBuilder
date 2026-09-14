@@ -142,85 +142,10 @@ Senior Polyglot Full-Stack Engineer ahli dalam SEMUA bahasa pemrograman utama...
 
           <!-- Output Action Buttons -->
           <div class="output-action-row">
-            <button id="btnCopyPrompt" class="btn btn-primary btn-lg">
+            <button id="btnCopyPrompt" class="btn btn-primary btn-lg btn-copy-full">
               <span id="copyIcon">📋</span>
               <span id="copyText">Salin Prompt Lengkap</span>
             </button>
-            <button id="btnToggleAiTest" class="btn btn-secondary btn-lg">
-              <span>🚀</span>
-              <span>Uji Langsung ke AI</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Direct AI Testing Console (Collapsible) -->
-        <div id="aiTestConsole" class="card card-ai-test collapsed">
-          <div class="card-header cursor-pointer" id="aiTestToggleHeader">
-            <div class="header-left">
-              <span class="card-step-ai">AI</span>
-              <div>
-                <h2 class="card-title">Uji Simulasi Langsung (Claude / Gemini / AdaCode)</h2>
-                <p class="card-subtitle">Jalankan prompt yang sudah dibuat langsung ke model AI tanpa berpindah tab</p>
-              </div>
-            </div>
-            <button id="btnCollapseAi" class="btn btn-icon" title="Tutup / Buka panel AI">▼</button>
-          </div>
-
-          <div class="ai-test-body" id="aiTestBody">
-            <div class="ai-config-grid">
-              <div class="form-group">
-                <label for="aiProviderSelect" class="input-label">Penyedia AI (Provider):</label>
-                <select id="aiProviderSelect" class="form-select">
-                  <option value="gemini" selected>Google Gemini (3.6 Flash / Pro)</option>
-                  <option value="claude">Anthropic Claude (3.7 Sonnet, 3.5 Sonnet, Haiku)</option>
-                  <option value="adacode">AdaCode / OpenAI-Compatible (Local / Private API)</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="aiModelSelect" class="input-label">Model Target:</label>
-                <select id="aiModelSelect" class="form-select">
-                  <!-- Populated dynamically via app.js -->
-                </select>
-                <input type="text" id="aiCustomModelInput" class="form-input" style="display:none; margin-top:6px;" placeholder="Ketik nama model kustom...">
-              </div>
-
-              <div class="form-group full-width" id="customEndpointGroup" style="display:none;">
-                <label for="aiEndpointInput" class="input-label">Custom API Endpoint (AdaCode / Local / Proxy):</label>
-                <input type="text" id="aiEndpointInput" class="form-input" placeholder="https://api.openai.com/v1 atau http://localhost:11434/v1">
-              </div>
-
-              <div class="server-key-banner full-width" id="serverKeyBanner">
-                <div class="server-key-badge">🟢 API Key Gemini Aktif (Tersedia Gratis untuk Semua Pengguna)</div>
-                <p class="server-key-desc">Model <strong>Gemini 3.6 Flash</strong> sudah terhubung langsung ke API key server. Anda dan pengunjung lain bisa langsung klik tombol eksekusi di bawah tanpa perlu memasukkan key sama sekali!</p>
-              </div>
-
-              <div class="form-group full-width" id="apiKeyGroup" style="display:none;">
-                <label for="aiApiKeyInput" class="input-label">API Key / Session Token:</label>
-                <div class="input-password-wrapper">
-                  <input type="password" id="aiApiKeyInput" class="form-input" placeholder="Masukkan API Key untuk model ini...">
-                  <button type="button" id="btnToggleKeyVis" class="btn-toggle-vis" title="Lihat / Sembunyikan Key">👁️</button>
-                </div>
-                <small class="key-hint">Key tersimpan aman di localStorage browser lokal Anda.</small>
-              </div>
-            </div>
-
-            <div class="ai-run-row">
-              <button id="btnRunAiTest" class="btn btn-ai-run">
-                <span class="run-icon">⚡</span>
-                <span id="runAiText">Eksekusi Prompt ke AI</span>
-                <span id="aiRunSpinner" class="spinner hidden"></span>
-              </button>
-            </div>
-
-            <!-- AI Response Box -->
-            <div id="aiResponseContainer" class="ai-response-container hidden">
-              <div class="response-header">
-                <span class="response-title">💬 Hasil Respon dari AI:</span>
-                <button id="btnCopyAiResponse" class="btn btn-chip" title="Salin jawaban AI">📋 Salin Jawaban</button>
-              </div>
-              <div id="aiResponseContent" class="ai-response-content"></div>
-            </div>
           </div>
         </div>
       </section>
@@ -230,6 +155,6 @@ Senior Polyglot Full-Stack Engineer ahli dalam SEMUA bahasa pemrograman utama...
     <div id="toastContainer" class="toast-container"></div>
   </div>
 
-  <script src="app.js?v=13"></script>
+  <script src="app.js?v=14"></script>
 </body>
 </html>

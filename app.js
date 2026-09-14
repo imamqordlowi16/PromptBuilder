@@ -1,4 +1,4 @@
-// app.js - Precision Role & Task Prompt Architect with Intelligent Auto-Refine
+// app.js - Precision Role & Task Prompt Architect with Embedded Gemini Refinement
 (function () {
   "use strict";
 
@@ -38,40 +38,7 @@
   const state = {
     role: ROLE_PRESETS.fullstack_engineer,
     rawTask: "",
-    refinedTask: null,
-    aiProvider: "gemini",
-    aiModel: "gemini-3.6-flash",
-    aiEndpoint: "",
-    aiApiKey: "",
-    hasServerKey: false
-  };
-
-  // Provider Models Catalog (Dropdown Options)
-  const PROVIDER_MODELS = {
-    gemini: [
-      { value: "gemini-3.6-flash", label: "Gemini 3.6 Flash (Terbaru, Cepat & Cerdas) ⭐ Default", default: true },
-      { value: "gemini-3.6-pro", label: "Gemini 3.6 Pro (Penalaran Kompleks & Kode Arsitektur)" },
-      { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash (Alternatif Cepat)" },
-      { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash (Ringan)" },
-      { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro (Long Context)" },
-      { value: "custom", label: "✏️ Ketik Nama Model Lain (Kustom)" }
-    ],
-    claude: [
-      { value: "claude-3-7-sonnet-latest", label: "Claude 3.7 Sonnet (Hybrid Reasoning) ⭐ Rekomendasi", default: true },
-      { value: "claude-3-5-sonnet-latest", label: "Claude 3.5 Sonnet v2" },
-      { value: "claude-3-5-haiku-latest", label: "Claude 3.5 Haiku (Super Cepat)" },
-      { value: "claude-3-opus-latest", label: "Claude 3 Opus" },
-      { value: "custom", label: "✏️ Ketik Nama Model Lain (Kustom)" }
-    ],
-    adacode: [
-      { value: "default", label: "AdaCode Sesi Aktif (Default IDE)", default: true },
-      { value: "gpt-4o", label: "GPT-4o (Omni Model)" },
-      { value: "gpt-4o-mini", label: "GPT-4o Mini" },
-      { value: "o3-mini", label: "o3-mini Reasoning" },
-      { value: "claude-3.7-sonnet", label: "Claude 3.7 Sonnet (Proxy Sesi)" },
-      { value: "deepseek-chat", label: "DeepSeek V3 / R1" },
-      { value: "custom", label: "✏️ Ketik Nama Model Lain (Kustom)" }
-    ]
+    refinedTask: null
   };
 
   // DOM Elements
@@ -93,79 +60,14 @@
     btnCopyPrompt: document.getElementById("btnCopyPrompt"),
     copyIcon: document.getElementById("copyIcon"),
     copyText: document.getElementById("copyText"),
-    btnToggleAiTest: document.getElementById("btnToggleAiTest"),
-    aiTestConsole: document.getElementById("aiTestConsole"),
-    aiTestToggleHeader: document.getElementById("aiTestToggleHeader"),
-    btnCollapseAi: document.getElementById("btnCollapseAi"),
-    serverKeyBanner: document.getElementById("serverKeyBanner"),
-    apiKeyGroup: document.getElementById("apiKeyGroup"),
-    aiProviderSelect: document.getElementById("aiProviderSelect"),
-    aiModelSelect: document.getElementById("aiModelSelect"),
-    aiCustomModelInput: document.getElementById("aiCustomModelInput"),
-    customEndpointGroup: document.getElementById("customEndpointGroup"),
-    aiEndpointInput: document.getElementById("aiEndpointInput"),
-    aiApiKeyInput: document.getElementById("aiApiKeyInput"),
-    btnToggleKeyVis: document.getElementById("btnToggleKeyVis"),
-    btnRunAiTest: document.getElementById("btnRunAiTest"),
-    runAiText: document.getElementById("runAiText"),
-    aiRunSpinner: document.getElementById("aiRunSpinner"),
-    aiResponseContainer: document.getElementById("aiResponseContainer"),
-    aiResponseContent: document.getElementById("aiResponseContent"),
-    btnCopyAiResponse: document.getElementById("btnCopyAiResponse"),
     toastContainer: document.getElementById("toastContainer")
   };
 
   // Initialize
   function init() {
-    loadSavedAiConfig();
     setupEventListeners();
-    checkServerConfig();
-    updateProviderVisibility(state.aiProvider);
-
-    // Default Role & Initial Render
     el.roleInput.value = state.role;
     updatePromptOutput();
-  }
-
-  // Manage visibility based on AI Provider
-  function updateProviderVisibility(prov) {
-    if (prov === "gemini") {
-      if (el.serverKeyBanner) el.serverKeyBanner.style.display = "flex";
-      if (el.apiKeyGroup) el.apiKeyGroup.style.display = "none";
-      if (el.customEndpointGroup) el.customEndpointGroup.style.display = "none";
-    } else if (prov === "adacode") {
-      if (el.serverKeyBanner) el.serverKeyBanner.style.display = "none";
-      if (el.apiKeyGroup) el.apiKeyGroup.style.display = "block";
-      if (el.customEndpointGroup) el.customEndpointGroup.style.display = "block";
-    } else {
-      // claude, etc.
-      if (el.serverKeyBanner) el.serverKeyBanner.style.display = "none";
-      if (el.apiKeyGroup) el.apiKeyGroup.style.display = "block";
-      if (el.customEndpointGroup) el.customEndpointGroup.style.display = "none";
-    }
-  }
-
-  // Check if backend has a pre-configured server key
-  async function checkServerConfig() {
-    try {
-      const res = await fetch("/api/config");
-      if (res.ok) {
-        const cfg = await res.json();
-        state.hasServerKey = !!cfg.hasServerKey;
-        if (state.hasServerKey) {
-          if (!el.aiApiKeyInput.value.trim()) {
-            el.aiApiKeyInput.placeholder = "🔒 Opsional (Kunci Server Gemini Aktif - Siap Pakai Langsung)";
-          }
-          const keyHint = document.querySelector(".key-hint");
-          if (keyHint) {
-            keyHint.innerHTML = "✅ <strong>Kunci Server Aktif:</strong> Anda & pengunjung lain bisa langsung mengeksekusi Gemini 3 secara gratis tanpa memasukkan key pribadi.";
-            keyHint.style.color = "#34d399";
-          }
-        }
-      }
-    } catch (e) {
-      console.warn("Could not check server config:", e);
-    }
   }
 
   // Event Listeners
@@ -188,14 +90,14 @@
       updatePromptOutput();
     });
 
-    // Task Input Edit
+    // Task Input Edit (Reset refined state if user modifies input directly)
     el.taskInput.addEventListener("input", (e) => {
       state.rawTask = e.target.value;
-      state.refinedTask = null; // reset to user's raw text on direct editing
+      state.refinedTask = null;
       updatePromptOutput();
     });
 
-    // Preset Sample: Blazor
+    // Preset Sample: Blazor & ETL
     el.btnSampleBlazor.addEventListener("click", () => {
       el.rolePresetSelect.value = "blazor_dotnet";
       state.role = ROLE_PRESETS.blazor_dotnet;
@@ -216,146 +118,95 @@
       showToast("Kotak tugas dibersihkan.");
     });
 
-    // Refine Task Button
+    // Refine Task Button (Powered directly by Gemini)
     el.btnRefineTask.addEventListener("click", handleRefineTask);
 
     // Copy Prompt Button
     el.btnCopyPrompt.addEventListener("click", handleCopyPrompt);
-
-    // Toggle AI Test Console
-    el.btnToggleAiTest.addEventListener("click", () => {
-      toggleAiConsole(true);
-    });
-    el.aiTestToggleHeader.addEventListener("click", () => {
-      toggleAiConsole();
-    });
-
-    // Provider Change
-    el.aiProviderSelect.addEventListener("change", (e) => {
-      const prov = e.target.value;
-      state.aiProvider = prov;
-      updateProviderVisibility(prov);
-      renderModelOptions(prov);
-      saveAiConfig();
-    });
-
-    // Model Dropdown Change
-    el.aiModelSelect.addEventListener("change", (e) => {
-      const val = e.target.value;
-      if (val === "custom") {
-        el.aiCustomModelInput.style.display = "block";
-        el.aiCustomModelInput.focus();
-        state.aiModel = el.aiCustomModelInput.value.trim();
-      } else {
-        el.aiCustomModelInput.style.display = "none";
-        state.aiModel = val;
-      }
-      saveAiConfig();
-    });
-
-    // Custom Model Input
-    el.aiCustomModelInput.addEventListener("input", (e) => {
-      state.aiModel = e.target.value.trim();
-      saveAiConfig();
-    });
-
-    // Endpoint Input
-    el.aiEndpointInput.addEventListener("input", (e) => {
-      state.aiEndpoint = e.target.value;
-      saveAiConfig();
-    });
-
-    // API Key Input
-    el.aiApiKeyInput.addEventListener("input", (e) => {
-      state.aiApiKey = e.target.value;
-      saveAiConfig();
-    });
-
-    // Toggle Key Visibility
-    el.btnToggleKeyVis.addEventListener("click", () => {
-      const isPass = el.aiApiKeyInput.type === "password";
-      el.aiApiKeyInput.type = isPass ? "text" : "password";
-      el.btnToggleKeyVis.textContent = isPass ? "🔒" : "👁️";
-    });
-
-    // Run AI Test
-    el.btnRunAiTest.addEventListener("click", handleRunAiTest);
-
-    // Copy AI Response
-    el.btnCopyAiResponse.addEventListener("click", () => {
-      const text = el.aiResponseContent.textContent;
-      if (!text) return;
-      navigator.clipboard.writeText(text).then(() => {
-        showToast("Jawaban AI berhasil disalin!");
-      });
-    });
   }
 
-  // Compile Master Prompt (Clean & Strictly Non-Repetitive)
+  // Compile Master Prompt (Clean, Strict & Production Ready)
   function compilePrompt() {
     const roleText = (state.role && state.role.trim()) ? state.role.trim() : "Senior Software Engineer";
-    const activeTask = state.refinedTask || state.rawTask;
-    const taskText = (activeTask && activeTask.trim()) ? activeTask.trim() : "(Tuliskan tugas atau requirement Anda pada kolom sebelah kiri...)";
+    // Prioritize refined task if available, otherwise raw input
+    const taskContent = state.refinedTask || state.rawTask;
+    const taskText = (taskContent && taskContent.trim())
+      ? taskContent.trim()
+      : "(Tuliskan rincian tugas Anda pada kolom input di sebelah kiri...)";
 
-    let prompt = `### ROLE\n${roleText}\n\n`;
-    prompt += `### TASK\n${taskText}\n\n`;
-    prompt += `### KETENTUAN IMPLEMENTASI\n`;
-    prompt += `- Fokus terisolasi: Lakukan perubahan HANYA pada bagian/file/fungsi yang dispesifikasikan (hindari efek samping ke bagian lain).\n`;
-    prompt += `- Error handling & validasi: Terapkan penanganan data dan error menyeluruh.\n`;
-    prompt += `- Format jawaban: Langsung sajikan kode/solusi inti dengan penjelasan yang jelas dan praktis tanpa pengantar bertele-tele.\n`;
+    return `### ROLE
+${roleText}
 
-    return prompt;
+### TASK
+${taskText}
+
+### KETENTUAN IMPLEMENTASI
+- Fokus terisolasi: Ubah HANYA bagian/file/fungsi yang dispesifikasikan (hindari efek samping ke bagian lain).
+- Error handling & validasi: Terapkan penanganan data, null checking, dan logging/error handling menyeluruh.
+- Standar penamaan: Pertahankan konsistensi penamaan variabel, skema data, method, dan struktur kode eksisting.
+- Format jawaban: Langsung sajikan kode/solusi inti lengkap dengan penjelasan perubahan yang jelas dan siap dieksekusi.`;
   }
 
-  // Calculate Prompt Precision Rate (0 - 100%)
-  function calculatePromptScore(role, task) {
-    let score = 25; // Base score
+  // Calculate Prompt Precision Rate
+  function calculatePromptPrecision(role, task) {
+    if (!task || !task.trim()) return 0;
     
-    // Evaluate Role
-    const r = (role || "").trim();
-    if (r.length > 20) score += 15;
-    if (/(senior|principal|architect|engineer|specialist|expert|lead|master|polyglot)/i.test(r)) score += 10;
-    
-    // Evaluate Task
-    const t = (task || "").trim();
-    if (t.length > 30) score += 10;
-    if (t.length > 100) score += 10;
-    
-    // Structure (bullet points or numbered list)
-    if (/^[-*•\d.)]/m.test(t)) score += 15;
-    
-    // Specificity (mentions code entities, filenames, etl, function, sql, filter, etc.)
-    if (/(\.razor|\.cs|\.py|\.js|\.ts|\.json|\.xlsx|\.sql|function|skema|etl|grid|filter|class|api|table)/i.test(t)) score += 15;
-    
-    return Math.min(100, Math.max(0, score));
+    let score = 0;
+    const cleanTask = task.trim();
+    const words = cleanTask.split(/\s+/).length;
+
+    // 1. Role specificity (max 15%)
+    if (role && role.trim().length > 20) score += 15;
+    else if (role && role.trim().length > 5) score += 10;
+
+    // 2. Task length & depth (max 25%)
+    if (words >= 80) score += 25;
+    else if (words >= 40) score += 20;
+    else if (words >= 15) score += 15;
+    else score += 5;
+
+    // 3. Technical file/function specificity (max 20%)
+    if (/(\.razor|\.cs|\.ts|\.js|\.py|\.go|\.java|\.php|\.sql|\.json|\.html)/i.test(cleanTask)) score += 10;
+    if (/(function|method|endpoint|skema|schema|tabel|table|query|class|interface|controller|service|grid|pivot)/i.test(cleanTask)) score += 10;
+
+    // 4. Action clarity (max 15%)
+    if (/(update|ganti|ubah|tambah|buat|perbaiki|refactor|integrasikan|hapus|fix)/i.test(cleanTask)) score += 15;
+
+    // 5. Structure & Organization (max 15%)
+    if (/(\n\s*[-*•\d.]+|\n\s*###|\n\s*\*\*)/i.test(cleanTask)) score += 15;
+
+    // 6. Refined Bonus (max 10%)
+    if (state.refinedTask) score += 10;
+
+    return Math.min(100, Math.max(10, score));
   }
 
-  // Update Live Preview Output
+  // Update Output Preview and Counters
   function updatePromptOutput() {
-    const compiled = compilePrompt();
-    el.promptDisplay.textContent = compiled;
+    const fullPrompt = compilePrompt();
+    el.promptDisplay.textContent = fullPrompt;
 
-    // Statistics
-    const chars = compiled.length;
-    const words = compiled.trim() ? compiled.trim().split(/\s+/).length : 0;
-    const tokens = Math.ceil(chars / 3.8);
+    const charCount = fullPrompt.length;
+    const wordCount = fullPrompt.trim() ? fullPrompt.trim().split(/\s+/).length : 0;
+    const approxTokens = Math.round(charCount / 3.8);
 
-    el.statChars.textContent = `${chars} Karakter`;
-    el.statWords.textContent = `${words} Kata`;
-    el.statTokens.textContent = `~${tokens} Token`;
+    el.statChars.textContent = `${charCount.toLocaleString()} Karakter`;
+    el.statWords.textContent = `${wordCount.toLocaleString()} Kata`;
+    el.statTokens.textContent = `~${approxTokens.toLocaleString()} Token`;
 
-    // Prompt Precision Rate (%)
-    const activeTask = state.refinedTask || state.rawTask;
-    const score = calculatePromptScore(state.role, activeTask);
+    // Dynamic Precision Rate Badge
+    const effectiveTask = state.refinedTask || state.rawTask;
+    const score = calculatePromptPrecision(state.role, effectiveTask);
+
     if (el.statScore) {
       el.statScore.textContent = `🎯 Presisi: ${score}%`;
-      el.statScore.className = "badge badge-score";
-      if (score >= 85) {
+      el.statScore.classList.remove("score-high", "score-med", "score-low");
+      if (score >= 80) {
         el.statScore.classList.add("score-high");
-        el.statScore.title = "Tingkat Presisi Sangat Tinggi (Prompt Siap Eksekusi Optimal)";
+        el.statScore.title = "Tingkat Presisi Sangat Tinggi (Instruksi sangat jelas, spesifik, dan terstruktur)";
       } else if (score >= 60) {
         el.statScore.classList.add("score-med");
-        el.statScore.title = "Tingkat Presisi Sedang (Bagus, bisa dirapikan lagi jika perlu)";
+        el.statScore.title = "Tingkat Presisi Sedang (Bagus, klik 'Perbaiki' untuk hasil maksimal)";
       } else {
         el.statScore.classList.add("score-low");
         el.statScore.title = "Tingkat Presisi Rendah (Lengkapi task atau klik tombol ✨ Perbaiki)";
@@ -391,7 +242,7 @@
     });
   }
 
-  // Intelligent Task Refinement (Auto-Refine powered directly by Gemini Key)
+  // Intelligent Task Refinement (Powered by Embedded Gemini Key)
   async function handleRefineTask() {
     const rawText = el.taskInput.value.trim();
     if (!rawText) {
@@ -405,13 +256,10 @@
     if (el.refineText) el.refineText.textContent = "Merapikan via Gemini 3.6 Flash...";
 
     try {
-      // 1. Attempt high-precision AI refinement via Gemini (using server key or user key)
-      const userKey = (state.aiApiKey || localStorage.getItem("promptcraft_ai_key") || "").trim();
-      const currentProvider = state.aiProvider || "gemini";
-      const currentModel = (state.aiModel && state.aiModel !== "custom") ? state.aiModel : "gemini-3.6-flash";
       let refined = null;
       let usedAi = false;
 
+      // Call Backend Refine Endpoint (Securely connects with embedded Gemini Key)
       try {
         const res = await fetch("/api/refine", {
           method: "POST",
@@ -419,12 +267,11 @@
           body: JSON.stringify({
             task: rawText,
             role: state.role,
-            provider: currentProvider,
-            model: currentModel,
-            apiKey: userKey,
-            customEndpoint: state.aiEndpoint
+            provider: "gemini",
+            model: "gemini-3.6-flash"
           })
         });
+
         const data = await res.json();
         if (res.ok && data.refined && data.refined.trim()) {
           refined = data.refined.trim();
@@ -436,7 +283,7 @@
         console.warn("API refine failed, fallback to local heuristic:", apiErr);
       }
 
-      // 2. Local Heuristic Refiner (Fallback only if offline/network error)
+      // Local Heuristic Refiner (Fallback only if offline/network issue)
       if (!refined) {
         refined = cleanAndStructureTaskLocally(rawText);
       }
@@ -460,223 +307,48 @@
     }
   }
 
-  // Local Intelligent Heuristic Parser & Restructurer
+  // Local Intelligent Heuristic Parser & Restructurer (Offline Fallback)
   function cleanAndStructureTaskLocally(text) {
-    // 1. Remove duplicate notes or leftover boilerplate
     let clean = text
       .replace(/Catatan Penting & Ketentuan:[\s\S]*$/i, "")
       .replace(/### FORMAT[\s\S]*$/i, "")
       .replace(/### NEGATIVE CONSTRAINTS[\s\S]*$/i, "")
       .trim();
 
-    // 2. Break down text into raw items
     const rawLines = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
     const structuredItems = [];
 
-    // Analyze line by line
     rawLines.forEach(line => {
-      // Strip leading dashes or asterisks
       let content = line.replace(/^[-*•\d.)\t ]+/, "").trim();
       if (!content) return;
 
-      // Detect sub-actions if line contains run-on sentences with "kemudian", "lalu", "untuk mengganti"
-      if (content.toLowerCase().includes("loadpdnkelompokpage") || content.toLowerCase().includes("loadpdnindividualpage")) {
-        // Break compound function description into clear sub-points
-        const funcMatch = content.match(/^(Update pada function \w+)/i) || [null, content];
-        const funcTitle = funcMatch[1] || content.split(/,|:/)[0];
-        
-        const subPoints = [];
-        // Extract ETL replacement
-        const etlMatch = content.match(/mengganti nama skema etl dari ["']?([^"']+)["']? menjadi ["']?([^"']+)["']?/i);
-        if (etlMatch) {
-          subPoints.push(`Ganti skema ETL dari "${etlMatch[1]}" menjadi "${etlMatch[2]}"`);
-        }
+      const subClauses = content
+        .split(/(?:,|\bkarena\b|\bkemudian\b|\blalu\b|\bserta\b)(?=\s*(?:ubah|ganti|tambahkan|pastikan|update|samakan|buatkan))/i)
+        .map(s => s.trim())
+        .filter(Boolean);
 
-        // Extract Grid method
-        const gridMatch = content.match(/DynamicDataGrid (?:ubah menjadi|menjadi) (\w+)/i);
-        if (gridMatch) {
-          subPoints.push(`Ubah tipe DynamicDataGrid menjadi pemanggilan ${gridMatch[1]}`);
-        }
-
-        // Extract Filter
-        const filterMatch = content.match(/filter untuk di lempar.*?dari ([^.]+?)(?:\.|$)/i);
-        if (filterMatch) {
-          subPoints.push(`Kirim parameter filter ke skema ETL dari ${filterMatch[1].trim()}`);
-        }
-
-        // Extract Excel reference (handles paths with spaces)
-        const excelMatch = content.match(/(?:excel disini |tampilan.*?grid.*?seperti pada excel\s+)(?:disini\s+)?([A-Za-z]:\\[^,]+?\.xlsx|[^,]+?\.xlsx)/i);
-        const gridPosMatch = content.match(/grid yang (diatas|dibawah)/i);
-        if (excelMatch) {
-          const pos = gridPosMatch ? `bagian ${gridPosMatch[1]}` : "sesuai rujukan";
-          subPoints.push(`Tampilan grid disamakan dengan tabel excel ${pos} pada:\n     ${excelMatch[1].trim()}`);
-        }
-
-        // Extract column logic mapping (e.g. PUAB.razor)
-        const refLogicMatch = content.match(/khusus untuk kolom ["']?([^"']+)["']?.*?samakan logic.*?dari ([a-zA-Z0-9_.-]+\.razor|[a-zA-Z0-9_.-]+)/i);
-        if (refLogicMatch) {
-          subPoints.push(`Khusus kolom "${refLogicMatch[1]}": adopsi logika ekstraksi datanya dari ${refLogicMatch[2].trim()} (kolom lain tetap dari ETL)`);
-        }
-
-        if (subPoints.length > 0) {
-          let block = `- ${funcTitle}:\n` + subPoints.map(sp => `  * ${sp}`).join("\n");
-          structuredItems.push(block);
-          return;
-        }
+      if (subClauses.length > 1) {
+        structuredItems.push({ title: subClauses[0], subs: subClauses.slice(1) });
+      } else {
+        structuredItems.push({ title: content, subs: [] });
       }
-
-      // Generic bullet point cleanup
-      structuredItems.push(`- ${content}`);
     });
 
-    // Check if user has main introductory line
-    let header = "Lakukan update dengan requirement sebagai berikut:";
-    if (structuredItems.length > 0 && structuredItems[0].toLowerCase().includes("lakukan update pada")) {
-      header = structuredItems.shift().replace(/^- /, "");
-    }
+    let result = "";
+    structuredItems.forEach((item, idx) => {
+      result += `${idx + 1}. ${item.title}\n`;
+      if (item.subs && item.subs.length > 0) {
+        item.subs.forEach(sub => {
+          result += `   * ${sub}\n`;
+        });
+      }
+    });
 
-    let result = header + "\n" + structuredItems.join("\n");
-
-    // Clean up typos or odd repetitions
     result = result
       .replace(/di lempar/gi, "dilempar")
       .replace(/\n{3,}/g, "\n\n");
 
-    return result;
-  }
-
-  // Toggle AI Test Console
-  function toggleAiConsole(forceOpen = false) {
-    if (forceOpen) {
-      el.aiTestConsole.classList.remove("collapsed");
-      el.btnCollapseAi.textContent = "▲";
-      el.aiTestConsole.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    } else {
-      const isCollapsed = el.aiTestConsole.classList.toggle("collapsed");
-      el.btnCollapseAi.textContent = isCollapsed ? "▼" : "▲";
-    }
-  }
-
-  // Render Model Dropdown Options dynamically
-  function renderModelOptions(provider, selectedModel) {
-    const models = PROVIDER_MODELS[provider] || PROVIDER_MODELS.gemini;
-    el.aiModelSelect.innerHTML = models.map(m => {
-      const isSelected = selectedModel ? m.value === selectedModel : m.default;
-      return `<option value="${m.value}" ${isSelected ? 'selected' : ''}>${m.label}</option>`;
-    }).join("");
-
-    const isCustom = el.aiModelSelect.value === "custom" || (!models.some(m => m.value === selectedModel) && selectedModel);
-    if (isCustom) {
-      el.aiModelSelect.value = "custom";
-      el.aiCustomModelInput.style.display = "block";
-      el.aiCustomModelInput.value = selectedModel || "";
-      state.aiModel = selectedModel || "";
-    } else {
-      el.aiCustomModelInput.style.display = "none";
-      state.aiModel = el.aiModelSelect.value;
-    }
-  }
-
-  // Run Prompt Directly in AI
-  async function handleRunAiTest() {
-    const promptText = compilePrompt();
-    const apiKey = el.aiApiKeyInput.value.trim();
-
-    if (!apiKey && state.aiProvider !== "gemini") {
-      showToast("Silakan masukkan API Key / Session Token terlebih dahulu.", "warning");
-      el.aiApiKeyInput.focus();
-      return;
-    }
-
-    const effectiveModel = (el.aiModelSelect.value === "custom")
-      ? (el.aiCustomModelInput.value.trim() || state.aiModel)
-      : el.aiModelSelect.value;
-
-    // Set UI Loading
-    el.btnRunAiTest.disabled = true;
-    el.aiRunSpinner.classList.remove("hidden");
-    el.runAiText.textContent = "Menghubungi AI...";
-    el.aiResponseContainer.classList.remove("hidden");
-    el.aiResponseContent.textContent = `Sedang mengeksekusi ke model ${effectiveModel}... Menunggu respon...`;
-
-    try {
-      const res = await fetch("/api/generate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          provider: state.aiProvider,
-          model: effectiveModel,
-          apiKey: apiKey,
-          prompt: promptText,
-          customEndpoint: el.aiEndpointInput.value.trim()
-        })
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || `Error ${res.status}`);
-      }
-
-      el.aiResponseContent.textContent = data.text || "(Respon kosong)";
-      showToast("Respon AI berhasil diterima!", "success");
-
-    } catch (err) {
-      el.aiResponseContent.textContent = `⚠️ Terjadi Kesalahan:\n${err.message}`;
-      showToast("Gagal mengeksekusi AI: " + err.message, "error");
-    } finally {
-      el.btnRunAiTest.disabled = false;
-      el.aiRunSpinner.classList.add("hidden");
-      el.runAiText.textContent = "Eksekusi Prompt ke AI";
-    }
-  }
-
-  // LocalStorage Persistence for AI Config
-  function saveAiConfig() {
-    const config = {
-      provider: state.aiProvider,
-      model: state.aiModel,
-      endpoint: el.aiEndpointInput.value.trim(),
-      apiKey: el.aiApiKeyInput.value.trim()
-    };
-    try {
-      localStorage.setItem("promptcraft_ai_config", JSON.stringify(config));
-    } catch (e) {
-      console.warn("Cannot save AI config to localStorage:", e);
-    }
-  }
-
-  function loadSavedAiConfig() {
-    try {
-      const raw = localStorage.getItem("promptcraft_ai_config");
-      if (raw) {
-        const config = JSON.parse(raw);
-        if (config.provider) {
-          state.aiProvider = config.provider;
-          el.aiProviderSelect.value = config.provider;
-        }
-        if (config.model) {
-          if (config.model === "gemini-2.5-flash" || config.model === "gemini-3-flash" || config.model === "gemini-3") {
-            state.aiModel = "gemini-3.6-flash";
-          } else {
-            state.aiModel = config.model;
-          }
-        }
-        if (config.endpoint) {
-          state.aiEndpoint = config.endpoint;
-          el.aiEndpointInput.value = config.endpoint;
-        }
-        if (config.apiKey) {
-          state.aiApiKey = config.apiKey;
-          el.aiApiKeyInput.value = config.apiKey;
-        }
-        updateProviderVisibility(state.aiProvider);
-      }
-    } catch (e) {
-      console.warn("Cannot load AI config:", e);
-    }
-
-    // Populate model dropdown
-    renderModelOptions(state.aiProvider, state.aiModel);
+    return result.trim();
   }
 
   // Toast Notification System
