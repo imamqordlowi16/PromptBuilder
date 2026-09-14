@@ -157,9 +157,26 @@
       }
     });
 
-    // 2. Browse Entire Folder (webkitdirectory)
-    const triggerFolderPicker = (e) => {
+    // 2. Browse Entire Folder (Modern showDirectoryPicker with instant folder skipping + webkitdirectory fallback)
+    const triggerFolderPicker = async (e) => {
       if (e) e.stopPropagation();
+
+      // Priority 1: Modern File System Access API (Chrome, Edge, Opera)
+      // Ini mencegah browser membaca 130.000+ file di node_modules/.git dan
+      // menghilangkan dialog "Upload 136.038 file" yang membekukan browser.
+      if (window.showDirectoryPicker) {
+        try {
+          const dirHandle = await window.showDirectoryPicker({ mode: "read" });
+          await handleDirectoryPicker(dirHandle);
+          return;
+        } catch (err) {
+          // Jika user membatalkan (Cancel), jangan lakukan apa-apa
+          if (err.name === "AbortError") return;
+          console.warn("showDirectoryPicker tidak diizinkan atau gagal, gunakan fallback input:", err);
+        }
+      }
+
+      // Priority 2: Fallback ke webkitdirectory input
       el.folderInput.value = "";
       el.folderInput.click();
     };
@@ -230,15 +247,12 @@
       }
     });
 
-    // Helper: Traverse dragged directories recursively
+    // Helper: Traverse dragged directories recursively with instant skip
     async function traverseEntries(entries, fileList, parentPath = "") {
-      const ignored = [
-        "node_modules", "bin", "obj", ".git", ".vs", ".idea", ".vscode",
-        "dist", "build", "TestResults", "packages", ".nuget"
-      ];
       for (const entry of entries) {
-        if (ignored.includes(entry.name)) continue;
+        if (isIgnoredFolder(entry.name)) continue;
         if (entry.isFile) {
+          if (isIgnoredFile(entry.name)) continue;
           await new Promise(resolve => {
             entry.file(f => {
               const fullRel = parentPath ? `${parentPath}/${entry.name}` : entry.name;
@@ -309,61 +323,163 @@
     }
   }
 
-  // Check if file path belongs to ignored folders (bin, obj, node_modules, etc.)
+  // Set of folders to completely ignore and skip
+  const IGNORED_FOLDERS = new Set([
+    "node_modules", "bin", "obj", ".git", ".github", ".vs", ".idea", ".vscode",
+    "dist", "build", "out", ".next", ".nuxt", ".output", "coverage", ".nyc_output",
+    "testresults", "packages", ".nuget", "vendor", "__pycache__", ".pytest_cache",
+    ".venv", "venv", "env", ".cache", ".turbo", ".gradle", "target", "tmp", "temp",
+    ".angular", ".svelte-kit", "pods", "deriveddata"
+  ]);
+
+  // Set of heavy / lock files to ignore
+  const IGNORED_FILES = new Set([
+    "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb",
+    "composer.lock", "cargo.lock", "gemfile.lock", ".ds_store", "thumbs.db"
+  ]);
+
+  function isIgnoredFolder(folderName) {
+    if (!folderName) return false;
+    return IGNORED_FOLDERS.has(folderName.toLowerCase());
+  }
+
+  function isIgnoredFile(fileName) {
+    if (!fileName) return false;
+    return IGNORED_FILES.has(fileName.toLowerCase());
+  }
+
+  // Check if relative path belongs to ignored folders (bin, obj, node_modules, etc.)
   function isIgnoredPath(filePath) {
-    const normalized = (filePath || "").replace(/\\/g, "/");
+    if (!filePath) return false;
+    const normalized = filePath.replace(/\\/g, "/");
     const segments = normalized.split("/");
-    const ignored = [
-      "node_modules", "bin", "obj", ".git", ".vs", ".idea", ".vscode",
-      "dist", "build", "TestResults", "packages", ".nuget"
-    ];
-    return segments.some(s => ignored.includes(s));
+    for (let i = 0; i < segments.length - 1; i++) {
+      if (isIgnoredFolder(segments[i])) return true;
+    }
+    return false;
+  }
+
+  // Handler for File System Access API (showDirectoryPicker)
+  // Super cepat karena node_modules dan .git langsung dilewati di root/cabang folder
+  async function handleDirectoryPicker(dirHandle) {
+    showToast("⚡ Memindai folder... (Melewati otomatis node_modules & .git)", "info");
+    const collectedFiles = [];
+    const MAX_FILES = 200; // Batas wajar agar prompt LLM tidak meledak
+
+    async function scanDirectory(handle, currentPath = "") {
+      if (collectedFiles.length >= MAX_FILES) return;
+
+      for await (const [name, entry] of handle.entries()) {
+        if (collectedFiles.length >= MAX_FILES) break;
+
+        if (entry.kind === "directory") {
+          // Lewati folder berat langsung! Tidak pernah membuka isinya
+          if (isIgnoredFolder(name)) continue;
+          const nextPath = currentPath ? `${currentPath}/${name}` : name;
+          await scanDirectory(entry, nextPath);
+        } else if (entry.kind === "file") {
+          if (isIgnoredFile(name)) continue;
+          try {
+            const file = await entry.getFile();
+            const fullRel = currentPath ? `${currentPath}/${name}` : name;
+            try {
+              Object.defineProperty(file, "webkitRelativePath", {
+                value: fullRel,
+                writable: true
+              });
+            } catch (e) {}
+            collectedFiles.push(file);
+          } catch (e) {}
+        }
+      }
+    }
+
+    try {
+      await scanDirectory(dirHandle, dirHandle.name);
+    } catch (err) {
+      console.error("Gagal saat memindai direktori:", err);
+      showToast("Gagal membaca sebagian berkas pada folder.", "error");
+    }
+
+    if (collectedFiles.length === 0) {
+      showToast("Tidak ada berkas kode/teks yang ditemukan pada folder ini.", "warning");
+      return;
+    }
+
+    if (collectedFiles.length >= MAX_FILES) {
+      showToast(`Membatasi ${MAX_FILES} berkas pertama untuk efisiensi context window prompt.`, "warning");
+    }
+
+    await handleIncomingFiles(collectedFiles);
   }
 
   // Process and read incoming files (Text/Code vs Binary, preserves relative path)
   async function handleIncomingFiles(fileList) {
-    const files = Array.from(fileList);
-    if (files.length === 0) return;
+    const rawFiles = Array.from(fileList);
+    if (rawFiles.length === 0) return;
 
+    // Fast O(1) deduplication check using Set
+    const existingNames = new Set(state.attachments.map(a => a.name));
+
+    // Fast filter: hanya ambil berkas yang valid & belum ada
+    const validQueue = [];
+    for (const file of rawFiles) {
+      const fullPath = file.webkitRelativePath || file.name;
+      if (isIgnoredPath(fullPath)) continue;
+      if (isIgnoredFile(file.name)) continue;
+      if (existingNames.has(fullPath)) continue;
+
+      validQueue.push({ file, fullPath });
+    }
+
+    if (validQueue.length === 0) {
+      showToast("Semua berkas diabaikan (folder build/cache atau berkas duplikat).", "info");
+      return;
+    }
+
+    // Safety limit untuk mencegah tab browser hang jika user mengunggah ratusan file
+    const MAX_PROCESS = 150;
+    const toProcess = validQueue.slice(0, MAX_PROCESS);
+    if (validQueue.length > MAX_PROCESS) {
+      showToast(`Membatasi ${MAX_PROCESS} berkas agar tidak membebani browser dan token prompt.`, "warning");
+    }
+
+    // Baca file secara paralel dalam batch (15 concurrent reads)
+    const BATCH_SIZE = 15;
     let addedCount = 0;
 
-    for (const file of files) {
-      const fullPath = file.webkitRelativePath || file.name;
-      // Filter out auto-generated build / git folders
-      if (isIgnoredPath(fullPath)) continue;
+    for (let i = 0; i < toProcess.length; i += BATCH_SIZE) {
+      const batch = toProcess.slice(i, i + BATCH_SIZE);
+      await Promise.all(batch.map(async ({ file, fullPath }) => {
+        const sizeFormatted = formatFileSize(file.size);
+        const ext = getFileExtension(file.name);
+        const isText = isTextOrCodeFile(file.name, file.type);
 
-      const sizeFormatted = formatFileSize(file.size);
+        let content = null;
+        let isBinary = true;
 
-      // Prevent duplicate file paths if identical size
-      const isDuplicate = state.attachments.some(a => a.name === fullPath && a.sizeFormatted === sizeFormatted);
-      if (isDuplicate) continue;
-
-      const ext = getFileExtension(file.name);
-      const isText = isTextOrCodeFile(file.name, file.type);
-
-      let content = null;
-      let isBinary = true;
-
-      if (isText && file.size < 4 * 1024 * 1024) { // Up to 4MB text files
-        try {
-          content = await readFileAsText(file);
-          isBinary = false;
-        } catch (err) {
-          console.warn("Could not read as text:", fullPath, err);
-          content = null;
-          isBinary = true;
+        if (isText && file.size < 3 * 1024 * 1024) { // Sampai dengan 3MB teks
+          try {
+            content = await readFileAsText(file);
+            isBinary = false;
+          } catch (err) {
+            console.warn("Could not read as text:", fullPath, err);
+            content = null;
+            isBinary = true;
+          }
         }
-      }
 
-      addAttachmentRecord({
-        name: fullPath,
-        sizeFormatted,
-        ext,
-        content,
-        isBinary
-      });
+        addAttachmentRecord({
+          name: fullPath,
+          sizeFormatted,
+          ext,
+          content,
+          isBinary
+        });
 
-      addedCount++;
+        existingNames.add(fullPath);
+        addedCount++;
+      }));
     }
 
     if (addedCount > 0) {
