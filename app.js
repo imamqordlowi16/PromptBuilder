@@ -8,11 +8,7 @@
     selectedPersonaId: "senior_architect",
     selectedFrameworkId: "simple",
     formData: {},
-    constraints: [
-      "Berikan penjelasan berbasis data dan alasan teknis yang kuat.",
-      "Hindari klaim spekulatif tanpa rujukan metodologis.",
-      "Gunakan format Markdown terstruktur dengan bullet points rapi."
-    ],
+    constraints: [],
     variables: {},
     fewShots: [],
     customPersona: {
@@ -368,16 +364,12 @@ Tuliskan HANYA teks instruksi hasil perbaikan secara langsung tanpa salam pembuk
 
       // Offline / Local intelligent heuristic refiner fallback
       let polished = currentVal;
-      // Split sentences if long paragraph
-      if (polished.includes(".") && !polished.includes("1.") && !polished.includes("- ")) {
+      // Format paragraphs into clean bullet points if messy
+      if (polished.includes(".") && !polished.includes("1.") && !polished.includes("- ") && !polished.includes("\t-")) {
         const parts = polished.split(/(?<=[.!?])\s+/).filter(p => p.trim().length > 8);
         if (parts.length > 1) {
-          polished = `Lakukan eksekusi tugas dengan requirement terstruktur berikut:\n` +
-            parts.map((p, idx) => `${idx + 1}. ${p.trim()}`).join("\n") +
-            `\n\nCatatan Penting:\n- Pastikan implementasi terisolasi dan tidak merusak fungsi atau bagian lain.\n- Lakukan validasi data masukan dan terapkan error handling yang aman.`;
+          polished = parts.map((p, idx) => `${idx + 1}. ${p.trim()}`).join("\n");
         }
-      } else if (!polished.toLowerCase().includes("catatan penting") && !polished.toLowerCase().includes("batasan")) {
-        polished = `${polished}\n\nCatatan Penting & Ketentuan:\n- Pastikan seluruh perubahan terisolasi dan tidak menyebabkan efek samping (side-effects).\n- Wajib menerapkan validasi dan error handling menyeluruh.`;
       }
 
       state.formData[key] = polished;
@@ -534,22 +526,25 @@ Tuliskan HANYA teks instruksi hasil perbaikan secara langsung tanpa salam pembuk
     // Compile framework core
     let compiled = fw.compile(state.formData, persona);
 
-    // Append Few-Shot Examples if any
-    if (state.fewShots.length > 0) {
-      compiled += `\n### FEW-SHOT EXAMPLES (REFERENSI CONTOH)\n`;
-      state.fewShots.forEach((fs, i) => {
-        if (fs.input || fs.output) {
-          compiled += `\n<example index="${i + 1}">\nInput: ${fs.input || '-'}\nOutput:\n${fs.output || '-'}\n</example>\n`;
-        }
-      });
-    }
+    // Append Few-Shot Examples and Custom Guardrails (hanya jika bukan framework simple)
+    if (fw.id !== "simple") {
+      if (state.fewShots.length > 0) {
+        compiled += `\n### FEW-SHOT EXAMPLES (REFERENSI CONTOH)\n`;
+        state.fewShots.forEach((fs, i) => {
+          if (fs.input || fs.output) {
+            compiled += `\n<example index="${i + 1}">\nInput: ${fs.input || '-'}\nOutput:\n${fs.output || '-'}\n</example>\n`;
+          }
+        });
+      }
 
-    // Append Guardrails & Constraints
-    if (state.constraints.length > 0) {
-      compiled += `\n### NEGATIVE CONSTRAINTS & GUARDRAILS (WAJIB DIPATUHI)\n`;
-      state.constraints.forEach(c => {
-        compiled += `- JANGAN / HINDARI: ${c}\n`;
-      });
+      if (state.constraints.length > 0) {
+        compiled += `\n### NEGATIVE CONSTRAINTS & GUARDRAILS (WAJIB DIPATUHI)\n`;
+        state.constraints.forEach(c => {
+          const clean = c.trim();
+          const prefix = clean.toLowerCase().startsWith("jangan") || clean.toLowerCase().startsWith("hindari") ? "- " : "- JANGAN / HINDARI: ";
+          compiled += `${prefix}${clean}\n`;
+        });
+      }
     }
 
     // Variable Replacement

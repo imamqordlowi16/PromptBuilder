@@ -24,25 +24,14 @@ const PROMPT_FRAMEWORKS = [
     ],
     compile: (data, expert) => {
       const activeRole = (data.role && data.role.trim()) ? data.role.trim() : expert.role;
-      let prompt = `### ROLE & IDENTITY\nBertindaklah sebagai ${activeRole}.\n\n`;
-      
-      if (expert.principles && expert.principles.length) {
-        prompt += `### CORE EXPERT PRINCIPLES\n`;
-        expert.principles.forEach(p => prompt += `- ${p}\n`);
-        prompt += `\n`;
-      }
+      let prompt = `### ROLE\n${activeRole}\n\n`;
 
-      prompt += `### DETAILED TASK & REQUIREMENTS\n${data.task || "(Tuliskan tugas Anda...)"}\n\n`;
+      prompt += `### TASK\n${data.task || "(Tuliskan tugas Anda...)"}\n\n`;
 
-      prompt += `### MANDATORY EXECUTION GUIDELINES & SAFETY\n`;
-      prompt += `- **Isolasi Perubahan**: Lakukan perubahan HANYA pada bagian/file/fungsi yang dispesifikasikan. Dilarang keras memodifikasi kode atau konfigurasi lain di luar cakupan tugas.\n`;
-      prompt += `- **Error Handling & Validasi**: Wajib menyertakan penanganan error, validasi data, dan null-safety yang menyeluruh.\n`;
-      prompt += `- **Tanpa Asumsi Liar**: Jika ada informasi yang kurang atau ambigu, tanyakan sebelum mengambil asumsi berisiko.\n\n`;
-
-      prompt += `### EXPECTED OUTPUT FORMAT\n`;
-      prompt += `- Berikan solusi terstruktur, langsung ke poin inti (direct solution).\n`;
-      prompt += `- Jika berupa kode, tampilkan potongan kode lengkap yang siap pakai dengan komentar penjelas yang jelas mana baris yang diubah.\n`;
-      prompt += `- Minimalkan basa-basi pengantar yang tidak diperlukan.\n`;
+      prompt += `### FORMAT & GUIDELINES\n`;
+      prompt += `- Lakukan perubahan HANYA pada bagian/file/fungsi yang dispesifikasikan (isolasi ketat, hindari efek samping).\n`;
+      prompt += `- Wajib menerapkan validasi data dan error handling yang aman.\n`;
+      prompt += `- Sajikan jawaban terstruktur langsung ke kode/solusi inti dengan komentar jelas mana baris yang diubah tanpa basa-basi pengantar.\n`;
 
       return prompt;
     }
