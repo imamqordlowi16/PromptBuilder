@@ -196,15 +196,68 @@
       });
     });
 
-    el.dropzone.addEventListener("drop", (e) => {
+    el.dropzone.addEventListener("drop", async (e) => {
       e.preventDefault();
       e.stopPropagation();
       el.dropzone.classList.remove("dragover");
+
+      // Handle folder drag & drop via webkitGetAsEntry
+      const items = e.dataTransfer ? e.dataTransfer.items : null;
+      if (items && items.length > 0 && items[0].webkitGetAsEntry) {
+        const fileList = [];
+        const entries = [];
+        for (let i = 0; i < items.length; i++) {
+          const entry = items[i].webkitGetAsEntry();
+          if (entry) entries.push(entry);
+        }
+        await traverseEntries(entries, fileList);
+        if (fileList.length > 0) {
+          handleIncomingFiles(fileList);
+          return;
+        }
+      }
 
       if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
         handleIncomingFiles(e.dataTransfer.files);
       }
     });
+
+    // Helper: Traverse dragged directories recursively
+    async function traverseEntries(entries, fileList, parentPath = "") {
+      const ignored = [
+        "node_modules", "bin", "obj", ".git", ".vs", ".idea", ".vscode",
+        "dist", "build", "TestResults", "packages", ".nuget"
+      ];
+      for (const entry of entries) {
+        if (ignored.includes(entry.name)) continue;
+        if (entry.isFile) {
+          await new Promise(resolve => {
+            entry.file(f => {
+              const fullRel = parentPath ? `${parentPath}/${entry.name}` : entry.name;
+              try {
+                Object.defineProperty(f, 'webkitRelativePath', {
+                  value: fullRel,
+                  writable: true
+                });
+              } catch (e) {}
+              fileList.push(f);
+              resolve();
+            }, () => resolve());
+          });
+        } else if (entry.isDirectory) {
+          const dirReader = entry.createReader();
+          const readAll = () => new Promise(resolve => {
+            dirReader.readEntries(async subEntries => {
+              if (!subEntries || subEntries.length === 0) return resolve();
+              const nextPath = parentPath ? `${parentPath}/${entry.name}` : entry.name;
+              await traverseEntries(subEntries, fileList, nextPath);
+              readAll().then(resolve);
+            }, () => resolve());
+          });
+          await readAll();
+        }
+      }
+    }
 
     // 5. Global Clipboard Paste Handler
     window.addEventListener("paste", handlePasteEvent);
@@ -248,7 +301,18 @@
     }
   }
 
-  // Process and read incoming files (Text/Code vs Binary)
+  // Check if file path belongs to ignored folders (bin, obj, node_modules, etc.)
+  function isIgnoredPath(filePath) {
+    const normalized = (filePath || "").replace(/\\/g, "/");
+    const segments = normalized.split("/");
+    const ignored = [
+      "node_modules", "bin", "obj", ".git", ".vs", ".idea", ".vscode",
+      "dist", "build", "TestResults", "packages", ".nuget"
+    ];
+    return segments.some(s => ignored.includes(s));
+  }
+
+  // Process and read incoming files (Text/Code vs Binary, preserves relative path)
   async function handleIncomingFiles(fileList) {
     const files = Array.from(fileList);
     if (files.length === 0) return;
@@ -256,13 +320,18 @@
     let addedCount = 0;
 
     for (const file of files) {
-      // Prevent duplicate file names if identical size
-      const isDuplicate = state.attachments.some(a => a.name === file.name && a.sizeFormatted === formatFileSize(file.size));
+      const fullPath = file.webkitRelativePath || file.name;
+      // Filter out auto-generated build / git folders
+      if (isIgnoredPath(fullPath)) continue;
+
+      const sizeFormatted = formatFileSize(file.size);
+
+      // Prevent duplicate file paths if identical size
+      const isDuplicate = state.attachments.some(a => a.name === fullPath && a.sizeFormatted === sizeFormatted);
       if (isDuplicate) continue;
 
       const ext = getFileExtension(file.name);
       const isText = isTextOrCodeFile(file.name, file.type);
-      const sizeFormatted = formatFileSize(file.size);
 
       let content = null;
       let isBinary = true;
@@ -272,14 +341,14 @@
           content = await readFileAsText(file);
           isBinary = false;
         } catch (err) {
-          console.warn("Could not read as text:", file.name, err);
+          console.warn("Could not read as text:", fullPath, err);
           content = null;
           isBinary = true;
         }
       }
 
       addAttachmentRecord({
-        name: file.name,
+        name: fullPath,
         sizeFormatted,
         ext,
         content,
@@ -292,7 +361,7 @@
     if (addedCount > 0) {
       renderAttachmentsList();
       updatePromptOutput();
-      showToast(`📎 Berhasil melampirkan ${addedCount} berkas!`, "success");
+      showToast(`📎 Berhasil melampirkan ${addedCount} berkas dari folder!`, "success");
     }
   }
 
