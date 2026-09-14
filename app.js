@@ -113,31 +113,39 @@
     });
 
     // Preset Sample: Blazor & ETL
-    el.btnSampleBlazor.addEventListener("click", () => {
-      el.rolePresetSelect.value = "blazor_dotnet";
-      state.role = ROLE_PRESETS.blazor_dotnet;
-      el.roleInput.value = state.role;
-      state.rawTask = SAMPLE_TASKS.blazor_etl;
-      state.refinedTask = null;
-      el.taskInput.value = state.rawTask;
-      updatePromptOutput();
-      showToast("Contoh Blazor & ETL dimuat!");
-    });
+    if (el.btnSampleBlazor) {
+      el.btnSampleBlazor.addEventListener("click", () => {
+        el.rolePresetSelect.value = "blazor_dotnet";
+        state.role = ROLE_PRESETS.blazor_dotnet;
+        el.roleInput.value = state.role;
+        state.rawTask = SAMPLE_TASKS.blazor_etl;
+        state.refinedTask = null;
+        el.taskInput.value = state.rawTask;
+        updatePromptOutput();
+        showToast("Contoh Blazor & ETL dimuat!");
+      });
+    }
 
     // Clear Task
-    el.btnClearTask.addEventListener("click", () => {
-      state.rawTask = "";
-      state.refinedTask = null;
-      el.taskInput.value = "";
-      updatePromptOutput();
-      showToast("Kotak tugas dibersihkan.");
-    });
+    if (el.btnClearTask) {
+      el.btnClearTask.addEventListener("click", () => {
+        state.rawTask = "";
+        state.refinedTask = null;
+        el.taskInput.value = "";
+        updatePromptOutput();
+        showToast("Kotak tugas dibersihkan.");
+      });
+    }
 
     // Refine Task Button (Powered directly by Gemini Key)
-    el.btnRefineTask.addEventListener("click", handleRefineTask);
+    if (el.btnRefineTask) {
+      el.btnRefineTask.addEventListener("click", handleRefineTask);
+    }
 
     // Copy Prompt Button
-    el.btnCopyPrompt.addEventListener("click", handleCopyPrompt);
+    if (el.btnCopyPrompt) {
+      el.btnCopyPrompt.addEventListener("click", handleCopyPrompt);
+    }
   }
 
   // Attachment System Handlers (Browse, Folder, Drag & Drop, Paste)
