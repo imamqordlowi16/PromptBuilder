@@ -1,6 +1,53 @@
 // data/frameworks.js - Framework Prompt Engineering Standar Industri
 const PROMPT_FRAMEWORKS = [
   {
+    id: "simple",
+    name: "Mode Praktis (Role & Task)",
+    badge: "Paling Simpel & Cepat",
+    tagline: "Cukup Isi 2 Kolom, Output Otomatis Lengkap",
+    description: "Hanya 2 kolom (Role & Task). Sistem otomatis merangkum konteks, batasan anti-halusinasi, dan format hasil menjadi master prompt profesional.",
+    fields: [
+      { 
+        key: "role", 
+        label: "Role (Peran Pakar)", 
+        placeholder: "Otomatis diisi oleh persona di sebelah kiri, atau tulis peran kustom yang Anda inginkan...", 
+        required: true, 
+        type: "input" 
+      },
+      { 
+        key: "task", 
+        label: "Task (Tugas / Requirement Anda)", 
+        placeholder: "Tulis atau tempel instruksi tugas Anda di sini (bisa gunakan tombol ✨ Auto-Perbaiki jika kalimatnya masih berantakan)...", 
+        required: true, 
+        type: "textarea" 
+      }
+    ],
+    compile: (data, expert) => {
+      const activeRole = (data.role && data.role.trim()) ? data.role.trim() : expert.role;
+      let prompt = `### ROLE & IDENTITY\nBertindaklah sebagai ${activeRole}.\n\n`;
+      
+      if (expert.principles && expert.principles.length) {
+        prompt += `### CORE EXPERT PRINCIPLES\n`;
+        expert.principles.forEach(p => prompt += `- ${p}\n`);
+        prompt += `\n`;
+      }
+
+      prompt += `### DETAILED TASK & REQUIREMENTS\n${data.task || "(Tuliskan tugas Anda...)"}\n\n`;
+
+      prompt += `### MANDATORY EXECUTION GUIDELINES & SAFETY\n`;
+      prompt += `- **Isolasi Perubahan**: Lakukan perubahan HANYA pada bagian/file/fungsi yang dispesifikasikan. Dilarang keras memodifikasi kode atau konfigurasi lain di luar cakupan tugas.\n`;
+      prompt += `- **Error Handling & Validasi**: Wajib menyertakan penanganan error, validasi data, dan null-safety yang menyeluruh.\n`;
+      prompt += `- **Tanpa Asumsi Liar**: Jika ada informasi yang kurang atau ambigu, tanyakan sebelum mengambil asumsi berisiko.\n\n`;
+
+      prompt += `### EXPECTED OUTPUT FORMAT\n`;
+      prompt += `- Berikan solusi terstruktur, langsung ke poin inti (direct solution).\n`;
+      prompt += `- Jika berupa kode, tampilkan potongan kode lengkap yang siap pakai dengan komentar penjelas yang jelas mana baris yang diubah.\n`;
+      prompt += `- Minimalkan basa-basi pengantar yang tidak diperlukan.\n`;
+
+      return prompt;
+    }
+  },
+  {
     id: "costar",
     name: "CO-STAR Framework",
     badge: "Paling Populer",

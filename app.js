@@ -6,7 +6,7 @@
   const state = {
     selectedDomainId: "tech_software",
     selectedPersonaId: "senior_architect",
-    selectedFrameworkId: "costar",
+    selectedFrameworkId: "simple",
     formData: {},
     constraints: [
       "Berikan penjelasan berbasis data dan alasan teknis yang kuat.",
@@ -186,6 +186,10 @@
         state.selectedPersonaId = card.getAttribute("data-persona-id");
         renderPersonaCards();
         updateActiveBanner();
+        if (state.selectedFrameworkId === "simple") {
+          state.formData.role = getCurrentPersona().role;
+          renderFormFields();
+        }
         updatePromptOutput();
       });
     });
@@ -242,6 +246,11 @@
   // Render Form Fields according to active framework
   function renderFormFields() {
     const fw = getCurrentFramework();
+    const persona = getCurrentPersona();
+
+    if (fw.id === "simple" && (!state.formData.role || !state.formData.role.trim())) {
+      state.formData.role = persona.role;
+    }
 
     el.formFieldsContainer.innerHTML = fw.fields.map(field => {
       const value = state.formData[field.key] || "";
@@ -1114,8 +1123,10 @@ Tuliskan HANYA teks instruksi hasil perbaikan secara langsung tanpa salam pembuk
     renderTemplateLibrary();
     updatePromptOutput();
 
-    // Default load clean arch template to give user great first look!
-    loadTemplate("tech_clean_arch_refactor");
+    // Inisialisasi awal dalam Mode Praktis (Role & Task)
+    state.formData.role = getCurrentPersona().role;
+    renderFormFields();
+    updatePromptOutput();
   }
 
   document.addEventListener("DOMContentLoaded", initApp);
