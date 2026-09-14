@@ -44,6 +44,57 @@ const SERVER_GEMINI_KEY = process.env.DEFAULT_GEMINI_KEY ||
   process.env.GEMINI_API_KEY || 
   Buffer.from("QVEuQWI4Uk42SjBDUDRoUUZzTTk0QldaeGxxVll1M1Y1aUtGVW42dFBsLWNMaXM5UFR6SkE=", "base64").toString("utf-8");
 
+// Robust Gemini Execution with Automatic Cascade across Available Models (Handles 429/503/404)
+async function executeGeminiWithFallback(apiKey, prompt, initialModel = "gemini-3.6-flash") {
+  let normalized = (initialModel || "").trim();
+  if (normalized === "gemini-2.0-flash" || normalized === "gemini-2.5-flash" || normalized === "gemini-3-flash" || normalized === "gemini-3") {
+    normalized = "gemini-3.6-flash";
+  }
+
+  // Priority cascade: requested model -> stable fast lite models -> flash variants
+  const modelsToTry = [
+    normalized,
+    "gemini-3.5-flash-lite",
+    "gemini-3.1-flash-lite",
+    "gemini-3.6-flash",
+    "gemini-3.7-flash",
+    "gemini-3.8-flash"
+  ];
+
+  const uniqueModels = [...new Set(modelsToTry.filter(Boolean))];
+  let lastError = null;
+
+  for (const targetModel of uniqueModels) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(targetModel)}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }]
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+        return {
+          ok: true,
+          model: targetModel,
+          text: data.candidates[0].content.parts[0].text.trim()
+        };
+      } else {
+        lastError = data.error?.message || `Status ${response.status}`;
+        console.warn(`[Gemini Cascade] ${targetModel} returned ${response.status}: ${lastError}. Trying next available model...`);
+      }
+    } catch (err) {
+      lastError = err.message;
+      console.warn(`[Gemini Cascade] Network error on ${targetModel}: ${err.message}. Trying next available model...`);
+    }
+  }
+
+  return { ok: false, error: lastError || "Semua model Gemini sedang sibuk atau kuota tercapai." };
+}
+
 // Helper: Handle Multi-Provider AI Requests (Gemini, Claude, AdaCode / OpenAI-Compatible)
 async function handleAiProxy(req, res) {
   let body = "";
@@ -120,41 +171,12 @@ async function handleAiProxy(req, res) {
         replyText = data.choices?.[0]?.message?.content || "Tidak ada respon dari model.";
 
       } else {
-        // Default: Google Gemini API (Supports Gemini 3.6 Flash, 3.6 Pro, etc.)
-        let geminiModel = (model || "gemini-3.6-flash").trim();
-        if (geminiModel === "gemini-3-flash" || geminiModel === "gemini-3" || geminiModel === "gemini-2.5-flash") {
-          geminiModel = "gemini-3.6-flash";
-        } else if (geminiModel === "gemini-3-pro" || geminiModel === "gemini-2.5-pro") {
-          geminiModel = "gemini-3.6-pro";
+        // Default: Google Gemini API with smart auto-cascade across available models
+        const geminiResult = await executeGeminiWithFallback(effectiveApiKey, prompt, model || "gemini-3.6-flash");
+        if (!geminiResult.ok) {
+          throw new Error(geminiResult.error);
         }
-
-        const executeGemini = async (targetModel) => {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(targetModel)}:generateContent?key=${encodeURIComponent(effectiveApiKey.trim())}`;
-          const response = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }]
-            })
-          });
-          const data = await response.json();
-          return { ok: response.ok, status: response.status, data };
-        };
-
-        let result = await executeGemini(geminiModel);
-
-        // Fallback to gemini-3.6-flash or gemini-2.0-flash if the requested model is deprecated or not found
-        if (!result.ok && geminiModel !== "gemini-3.6-flash") {
-          result = await executeGemini("gemini-3.6-flash");
-        }
-        if (!result.ok && geminiModel !== "gemini-2.0-flash") {
-          result = await executeGemini("gemini-2.0-flash");
-        }
-
-        if (!result.ok) {
-          throw new Error(result.data.error?.message || `Gemini API Error (${result.status})`);
-        }
-        replyText = result.data.candidates?.[0]?.content?.parts?.[0]?.text || "Tidak ada respon dari Gemini.";
+        replyText = geminiResult.text;
       }
 
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -287,36 +309,12 @@ ${codebaseSection}`;
         if (!response.ok) throw new Error(data.error?.message || `API Error (${response.status})`);
         refinedText = data.choices?.[0]?.message?.content?.trim() || "";
       } else {
-        let geminiModel = (model || "gemini-3.6-flash").trim();
-        if (geminiModel === "gemini-3-flash" || geminiModel === "gemini-3" || geminiModel === "gemini-2.5-flash") {
-          geminiModel = "gemini-3.6-flash";
-        } else if (geminiModel === "gemini-3-pro" || geminiModel === "gemini-2.5-pro") {
-          geminiModel = "gemini-3.6-pro";
+        // Default: Google Gemini API with smart auto-cascade across available models
+        const geminiResult = await executeGeminiWithFallback(effectiveApiKey, refinePrompt, model || "gemini-3.6-flash");
+        if (!geminiResult.ok) {
+          throw new Error(geminiResult.error);
         }
-
-        const executeRefine = async (targetModel) => {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(targetModel)}:generateContent?key=${encodeURIComponent(effectiveApiKey.trim())}`;
-          const response = await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: refinePrompt }] }]
-            })
-          });
-          const data = await response.json();
-          return { ok: response.ok, status: response.status, data };
-        };
-
-        let result = await executeRefine(geminiModel);
-        if (!result.ok && geminiModel !== "gemini-3.6-flash") {
-          result = await executeRefine("gemini-3.6-flash");
-        }
-        if (!result.ok && geminiModel !== "gemini-2.0-flash") {
-          result = await executeRefine("gemini-2.0-flash");
-        }
-
-        if (!result.ok) throw new Error(result.data.error?.message || `Gemini Error (${result.status})`);
-        refinedText = result.data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+        refinedText = geminiResult.text;
       }
 
       res.writeHead(200, { "Content-Type": "application/json" });
