@@ -51,7 +51,7 @@ const server = http.createServer((req, res) => {
         "Content-Type": contentType,
         "X-Content-Type-Options": "nosniff",
         "X-Frame-Options": "DENY",
-        "Cache-Control": ext === ".html" ? "no-cache" : "public, max-age=86400"
+        "Cache-Control": "no-cache, no-store, must-revalidate"
       });
       res.end(content);
     });
