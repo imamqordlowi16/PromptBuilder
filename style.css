@@ -962,6 +962,203 @@ body {
 }
 
 /* ==========================================================================
+   Interactive Prompt Evaluation, Revision & Session Continuation Styles
+   ========================================================================== */
+
+/* Continuation Banner (Session Continuity Mode) */
+.continuation-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%);
+  border: 1px solid rgba(6, 182, 212, 0.4);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 15px rgba(6, 182, 212, 0.12);
+  animation: slide-down 0.25s ease-out;
+}
+
+.cont-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cont-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(6, 182, 212, 0.25);
+  color: #67e8f9;
+  border: 1px solid rgba(6, 182, 212, 0.5);
+}
+
+.cont-desc {
+  font-size: 12.5px;
+  color: #e2e8f0;
+}
+
+/* Quick Revision Box */
+.revision-box {
+  background: rgba(30, 27, 75, 0.85);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  margin-top: 10px;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
+  animation: slide-down 0.25s ease-out;
+}
+
+.revision-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.rev-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: #fef08a;
+  font-weight: 700;
+}
+
+.revision-icon {
+  font-size: 16px;
+}
+
+.revision-input-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.revision-input {
+  flex: 1 1 240px;
+  border-color: rgba(245, 158, 11, 0.4) !important;
+}
+
+.revision-input:focus {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2) !important;
+}
+
+.btn-warning-glow {
+  background: linear-gradient(135deg, #d97706, #f59e0b);
+  color: #111827;
+  font-weight: 700;
+  border: none;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.35);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-warning-glow:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+/* Prompt Evaluation Interactive Card */
+.prompt-eval-card {
+  background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(15, 23, 42, 0.95));
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(139, 92, 246, 0.2);
+  animation: slide-down 0.25s ease-out;
+}
+
+.eval-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.eval-card-badge {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: rgba(139, 92, 246, 0.2);
+  color: #c4b5fd;
+  border: 1px solid rgba(139, 92, 246, 0.4);
+}
+
+.eval-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.eval-desc {
+  font-size: 12.5px;
+  color: #94a3b8;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.eval-btn-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-success-glow {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);
+  cursor: pointer;
+}
+
+.btn-success-glow:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-outline-warning {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  color: #fbbf24;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-outline-warning:hover {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fff;
+}
+
+.btn-continue-action {
+  background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+  color: #fff;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
+}
+
+.btn-continue-action:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================================================
    Responsive Breakpoints System
    ========================================================================== */
 

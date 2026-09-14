@@ -39,7 +39,9 @@
     role: ROLE_PRESETS.fullstack_engineer,
     rawTask: "",
     refinedTask: null,
-    attachments: [] // Array of { id, name, sizeFormatted, type, ext, content, isBinary }
+    attachments: [], // Array of { id, name, sizeFormatted, type, ext, content, isBinary }
+    previousPromptContext: null, // Context/assumptions saved from previous session
+    continuationStep: 1 // Current continuation step counter
   };
 
   // DOM Elements
@@ -62,6 +64,22 @@
     copyIcon: document.getElementById("copyIcon"),
     copyText: document.getElementById("copyText"),
     toastContainer: document.getElementById("toastContainer"),
+
+    // Continuation & Evaluation Elements
+    continuationBanner: document.getElementById("continuationBanner"),
+    contStepNum: document.getElementById("contStepNum"),
+    btnResetContinuation: document.getElementById("btnResetContinuation"),
+    revisionBox: document.getElementById("revisionBox"),
+    revisionInput: document.getElementById("revisionInput"),
+    btnSubmitRevision: document.getElementById("btnSubmitRevision"),
+    btnCloseRevision: document.getElementById("btnCloseRevision"),
+    revSpinner: document.getElementById("revSpinner"),
+    promptEvalCard: document.getElementById("promptEvalCard"),
+    btnConfirmSatisfied: document.getElementById("btnConfirmSatisfied"),
+    btnTriggerRevision: document.getElementById("btnTriggerRevision"),
+    btnDismissEval: document.getElementById("btnDismissEval"),
+    btnContinuePrompting: document.getElementById("btnContinuePrompting"),
+    btnContStepNum: document.getElementById("btnContStepNum"),
 
     // Attachments Elements
     attachmentsContainer: document.getElementById("attachmentsContainer"),
@@ -145,6 +163,62 @@
     // Copy Prompt Button
     if (el.btnCopyPrompt) {
       el.btnCopyPrompt.addEventListener("click", handleCopyPrompt);
+    }
+
+    // Evaluation: Sudah Sesuai (Lanjutkan Sesi Ngeprompt)
+    if (el.btnConfirmSatisfied) {
+      el.btnConfirmSatisfied.addEventListener("click", handleStartContinuation);
+    }
+
+    // Output Action Row: Direct Lanjutkan Ngeprompt Button
+    if (el.btnContinuePrompting) {
+      el.btnContinuePrompting.addEventListener("click", handleStartContinuation);
+    }
+
+    // Reset Continuation Sesi
+    if (el.btnResetContinuation) {
+      el.btnResetContinuation.addEventListener("click", handleResetContinuation);
+    }
+
+    // Evaluation: Belum Sesuai (Buka Kotak Revisi)
+    if (el.btnTriggerRevision) {
+      el.btnTriggerRevision.addEventListener("click", () => {
+        hidePromptEvaluation();
+        if (el.revisionBox) {
+          el.revisionBox.classList.remove("hidden");
+          if (el.revisionInput) {
+            el.revisionInput.focus();
+            el.revisionBox.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        }
+      });
+    }
+
+    // Dismiss Evaluation Card
+    if (el.btnDismissEval) {
+      el.btnDismissEval.addEventListener("click", hidePromptEvaluation);
+    }
+
+    // Close Revision Box
+    if (el.btnCloseRevision) {
+      el.btnCloseRevision.addEventListener("click", () => {
+        if (el.revisionBox) el.revisionBox.classList.add("hidden");
+      });
+    }
+
+    // Submit AI Revision
+    if (el.btnSubmitRevision) {
+      el.btnSubmitRevision.addEventListener("click", handleExecuteRevision);
+    }
+
+    // Revision Input Enter Key Shortcut
+    if (el.revisionInput) {
+      el.revisionInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          handleExecuteRevision();
+        }
+      });
     }
   }
 
@@ -604,10 +678,20 @@
       });
     }
 
+    let priorContextSection = "";
+    if (state.previousPromptContext) {
+      priorContextSection = `### KONTEKS & ASUMSI DARI SESI SEBELUMNYA (TAHAP ${state.continuationStep - 1})
+Berikut adalah arsitektur, asumsi, dan hasil implementasi yang telah disepakati dari tahap sebelumnya:
+"""
+${state.previousPromptContext}
+"""
+Instruksi TASK di bawah ini merupakan KELANJUTAN TAHAP KE-${state.continuationStep} yang wajib dibangun secara konsisten di atas fondasi implementasi sebelumnya.\n\n`;
+    }
+
     return `### ROLE
 ${roleText}
 
-### TASK
+${priorContextSection}### TASK
 ${taskText}${attachmentsSection}
 
 ### KETENTUAN IMPLEMENTASI
@@ -710,9 +794,136 @@ ${taskText}${attachmentsSection}
         el.copyIcon.textContent = "📋";
         el.copyText.textContent = "Salin Prompt Lengkap";
       }, 2000);
+
+      // Tampilkan notifikasi / kartu evaluasi hasil prompt
+      showPromptEvaluation();
     }).catch(err => {
       showToast("Gagal menyalin prompt: " + err, "error");
     });
+  }
+
+  // Show / Hide Prompt Evaluation Notification
+  function showPromptEvaluation() {
+    if (el.promptEvalCard) {
+      el.promptEvalCard.classList.remove("hidden");
+      el.promptEvalCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }
+
+  function hidePromptEvaluation() {
+    if (el.promptEvalCard) {
+      el.promptEvalCard.classList.add("hidden");
+    }
+  }
+
+  // Handle Continuation: Proceed to next prompt stage with prior assumptions
+  function handleStartContinuation() {
+    const currentPrompt = compilePrompt();
+    if (!currentPrompt || (!state.rawTask && !state.refinedTask)) {
+      showToast("Tuliskan dan susun prompt terlebih dahulu sebelum melanjutkan sesi.", "warning");
+      return;
+    }
+
+    // Save current prompt as prior context
+    state.previousPromptContext = currentPrompt;
+    state.continuationStep += 1;
+
+    // Update Banner & Continuation Action Button
+    if (el.continuationBanner) el.continuationBanner.classList.remove("hidden");
+    if (el.contStepNum) el.contStepNum.textContent = `Tahap ${state.continuationStep}`;
+    if (el.btnContinuePrompting) el.btnContinuePrompting.classList.remove("hidden");
+    if (el.btnContStepNum) el.btnContStepNum.textContent = `${state.continuationStep}`;
+
+    // Reset task inputs for next prompt
+    state.rawTask = "";
+    state.refinedTask = null;
+    el.taskInput.value = "";
+    el.taskInput.placeholder = `Tuliskan requirement lanjutan untuk Tahap ${state.continuationStep} di sini...\n(AI akan mengingat seluruh arsitektur, asumsi, dan kode dari Tahap ${state.continuationStep - 1})`;
+
+    // Hide evaluation and revision boxes
+    hidePromptEvaluation();
+    if (el.revisionBox) el.revisionBox.classList.add("hidden");
+
+    // Refresh prompt preview & focus input
+    updatePromptOutput();
+    el.taskInput.focus();
+    el.taskInput.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    showToast(`🚀 Mode Lanjutan Aktif! Menulis prompt untuk Tahap ${state.continuationStep} dengan asumsi tahap sebelumnya.`, "success");
+  }
+
+  // Reset Continuation
+  function handleResetContinuation() {
+    state.previousPromptContext = null;
+    state.continuationStep = 1;
+
+    if (el.continuationBanner) el.continuationBanner.classList.add("hidden");
+    if (el.btnContinuePrompting) el.btnContinuePrompting.classList.add("hidden");
+    el.taskInput.placeholder = "Tempel atau ketik requirement tugas Anda di sini...\nContoh:\n- Update PDN.razor tab 1 (Rasio PDN)\n- Ubah fungsi LoadPdnKelompokPage ganti skema etl jadi RASIO_PDN_SEBELUM_TD_VALAS_KELOMPOK\n- Ubah grid jadi LoadPivotAsync dan pasang filter tanggal dan kelompok bank...";
+
+    updatePromptOutput();
+    showToast("Sesi lanjutan direset. Kembali ke prompt mandiri awal.", "info");
+  }
+
+  // Execute AI Revision based on user's correction note
+  async function handleExecuteRevision() {
+    const revisionNote = el.revisionInput ? el.revisionInput.value.trim() : "";
+    if (!revisionNote) {
+      showToast("Ketik catatan revisi terlebih dahulu (poin apa yang ingin disesuaikan).", "warning");
+      if (el.revisionInput) el.revisionInput.focus();
+      return;
+    }
+
+    const currentTask = el.taskInput.value.trim() || state.rawTask;
+    if (!currentTask) {
+      showToast("Tidak ada task aktif untuk direvisi.", "warning");
+      return;
+    }
+
+    // Loading State
+    if (el.btnSubmitRevision) el.btnSubmitRevision.disabled = true;
+    if (el.revSpinner) el.revSpinner.classList.remove("hidden");
+
+    try {
+      const { tree, techStack, smartAttachments } = analyzeCodebaseContext(currentTask, state.attachments);
+
+      const res = await fetch("/api/refine", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task: currentTask,
+          role: state.role,
+          provider: "gemini",
+          model: "gemini-3.6-flash",
+          revisionNote: revisionNote,
+          attachments: smartAttachments,
+          codebaseTree: tree,
+          techStack: techStack
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.refined && data.refined.trim()) {
+        const revised = data.refined.trim();
+        state.refinedTask = revised;
+        state.rawTask = revised;
+        el.taskInput.value = revised;
+        updatePromptOutput();
+
+        if (el.revisionInput) el.revisionInput.value = "";
+        if (el.revisionBox) el.revisionBox.classList.add("hidden");
+
+        showToast("✨ Revisi berhasil diterapkan oleh AI sesuai catatan Anda!", "success");
+        showPromptEvaluation();
+      } else {
+        showToast("Gagal memproses revisi: " + (data.error || "Respon AI kosong"), "error");
+      }
+    } catch (err) {
+      showToast("Kesalahan jaringan saat revisi: " + err.message, "error");
+    } finally {
+      if (el.btnSubmitRevision) el.btnSubmitRevision.disabled = false;
+      if (el.revSpinner) el.revSpinner.classList.add("hidden");
+    }
   }
 
   // Analyze Codebase Architecture, Directory Tree & Prioritize Relevant Files
@@ -851,6 +1062,8 @@ ${taskText}${attachmentsSection}
         showToast("✨ Hasil Master Prompt dirapikan secara heuristik.", "info");
       }
 
+      // Tampilkan notifikasi / dialog evaluasi apakah hasil prompt sudah sesuai
+      showPromptEvaluation();
     } catch (err) {
       showToast("Gagal merapikan teks: " + err.message, "error");
     } finally {

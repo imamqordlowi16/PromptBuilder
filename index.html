@@ -7,7 +7,7 @@
   <title>PromptCraft AI - Role & Task Prompt Architect</title>
   <meta name="description"
     content="Aplikasi pembuat prompt AI presisi berbasis Role dan Task dengan fitur perbaikan kalimat otomatis, anti-duplikasi, dan pengujian langsung ke Gemini, Claude, dan AdaCode.">
-  <link rel="stylesheet" href="style.css?v=11">
+  <link rel="stylesheet" href="style.css?v=12">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -92,12 +92,42 @@
             </div>
           </div>
 
+          <!-- Continuation Banner (Active when continuing from previous prompt assumption) -->
+          <div id="continuationBanner" class="continuation-banner hidden">
+            <div class="cont-info">
+              <span class="cont-badge">🔄 Sesi Lanjutan (<span id="contStepNum">Tahap 2</span>)</span>
+              <span class="cont-desc">Menyertakan asumsi & arsitektur dari hasil prompt sebelumnya.</span>
+            </div>
+            <button type="button" id="btnResetContinuation" class="btn btn-xs btn-chip-danger" title="Mulai sesi baru tanpa asumsi sebelumnya">
+              ✕ Reset Sesi Baru
+            </button>
+          </div>
+
           <div class="form-group task-input-group">
             <textarea id="taskInput" class="form-textarea task-textarea" rows="12" placeholder="Tempel atau ketik requirement tugas Anda di sini...
 Contoh:
 - Update PDN.razor tab 1 (Rasio PDN)
 - Ubah fungsi LoadPdnKelompokPage ganti skema etl jadi RASIO_PDN_SEBELUM_TD_VALAS_KELOMPOK
 - Ubah grid jadi LoadPivotAsync dan pasang filter tanggal dan kelompok bank..."></textarea>
+          </div>
+
+          <!-- Quick Revision Box (Active when user clicks "Belum Sesuai (Revisi)") -->
+          <div id="revisionBox" class="revision-box hidden">
+            <div class="revision-header">
+              <div class="rev-header-left">
+                <span class="revision-icon">✏️</span>
+                <span class="revision-title">Catatan Koreksi / Revisi Requirement:</span>
+              </div>
+              <button type="button" id="btnCloseRevision" class="btn-icon" title="Tutup kotak revisi">✕</button>
+            </div>
+            <div class="revision-input-row">
+              <input type="text" id="revisionInput" class="form-input revision-input" 
+                placeholder="Ketik poin yang belum sesuai (contoh: jangan ubah fungsi A, tambahkan validasi null, atau sesuaikan filter)...">
+              <button type="button" id="btnSubmitRevision" class="btn btn-sm btn-warning-glow btn-submit-rev">
+                <span>⚡ Jalankan Revisi AI</span>
+                <span id="revSpinner" class="spinner hidden"></span>
+              </button>
+            </div>
           </div>
 
           <!-- Attachments Section (Multiple Files, Folders & Copy/Paste) -->
@@ -208,11 +238,35 @@ Senior Polyglot Full-Stack Engineer ahli dalam SEMUA bahasa pemrograman utama...
 - Format jawaban: Langsung sajikan kode/solusi inti dengan penjelasan yang jelas dan praktis.</code></pre>
           </div>
 
+          <!-- Interactive Prompt Evaluation Card (Appears after Copy or AI Refine) -->
+          <div id="promptEvalCard" class="prompt-eval-card hidden">
+            <div class="eval-card-header">
+              <span class="eval-card-badge">🔔 Konfirmasi Evaluasi Prompt</span>
+              <button type="button" id="btnDismissEval" class="btn-icon" title="Tutup">✕</button>
+            </div>
+            <div class="eval-card-body">
+              <h4 class="eval-title">Apakah hasil susunan prompt sudah sesuai?</h4>
+              <p class="eval-desc">Jika sudah pas, Anda bisa langsung melanjutkan ke prompt tahap berikutnya dengan membawa asumsi implementasi saat ini. Jika belum pas, Anda dapat merevisinya.</p>
+              <div class="eval-btn-group">
+                <button type="button" id="btnConfirmSatisfied" class="btn btn-sm btn-success-glow">
+                  ✅ Sudah Sesuai (Lanjutkan Ngeprompt)
+                </button>
+                <button type="button" id="btnTriggerRevision" class="btn btn-sm btn-outline-warning">
+                  ✏️ Belum Sesuai (Revisi)
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- Output Action Buttons -->
           <div class="output-action-row">
             <button id="btnCopyPrompt" class="btn btn-primary btn-lg btn-copy-full">
               <span id="copyIcon">📋</span>
               <span id="copyText">Salin Prompt Lengkap</span>
+            </button>
+            <button id="btnContinuePrompting" class="btn btn-secondary btn-lg btn-continue-action hidden"
+              title="Lanjutkan menulis prompt tahap berikutnya dengan asumsi sesi ini">
+              <span>🚀 Lanjutkan Ngeprompt (Sesi <span id="btnContStepNum">2</span>)</span>
             </button>
           </div>
         </div>
@@ -223,7 +277,7 @@ Senior Polyglot Full-Stack Engineer ahli dalam SEMUA bahasa pemrograman utama...
     <div id="toastContainer" class="toast-container"></div>
   </div>
 
-  <script src="app.js?v=19"></script>
+  <script src="app.js?v=20"></script>
 </body>
 
 </html>

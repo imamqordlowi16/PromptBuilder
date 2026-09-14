@@ -196,7 +196,7 @@ async function handleTaskRefine(req, res) {
   req.on("end", async () => {
     try {
       const payload = JSON.parse(body || "{}");
-      const { task, role, provider, model, apiKey, customEndpoint, attachments, codebaseTree, techStack } = payload;
+      const { task, role, provider, model, apiKey, customEndpoint, attachments, codebaseTree, techStack, revisionNote } = payload;
 
       if (!task || !task.trim()) {
         res.writeHead(400, { "Content-Type": "application/json" });
@@ -213,6 +213,12 @@ async function handleTaskRefine(req, res) {
       if (!effectiveApiKey) {
         res.writeHead(200, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ refined: null, note: "No API key provided, use local heuristic" }));
+      }
+
+      // Format Revision Note (if user requested revisions)
+      let revisionSection = "";
+      if (revisionNote && revisionNote.trim()) {
+        revisionSection = `\n\n### CATATAN REVISI / PERBAIKAN PENGGUNA (PRIORITAS TINGGI):\nPengguna meminta koreksi/revisi khusus berikut terhadap instruksi:\n"${revisionNote.trim()}"\nPastikan requirement yang kamu susun mengintegrasikan dan menerapkan instruksi koreksi ini secara penuh!\n`;
       }
 
       // Format Codebase Architecture & Files Context
@@ -246,7 +252,9 @@ PANDUAN PEMAHAMAN STRUKTUR & ALUR KODE:
    - Identifikasi berkas yang menjadi referensi logika (misal: "ambil logic dari PUAB.razor") atau referensi lembar kerja (Excel/SQL/JSON).
 2. PAHAMI ALUR DATA (DATA & LOGIC FLOW):
    - Hubungkan instruksi pengguna dengan alur kerja nyata: mulai dari filter/input UI, pemanggilan method async, skema ETL/database yang dieksekusi, hingga binding data pada grid/tabel.
-3. BUAT INSTRUKSI KONKRET & SPESIFIK:
+3. PRIORITASKAN CATATAN REVISI (JIKA ADA):
+   - Jika ada catatan revisi dari pengguna, jadikan catatan tersebut sebagai instruksi utama yang harus dipenuhi dalam penyesuaian requirement.
+4. BUAT INSTRUKSI KONKRET & SPESIFIK:
    - Gunakan nama berkas asli, nama method asli (misal: LoadPdnKelompokPage, LoadPivotAsync), nama skema ETL asli, dan nama variabel asli yang terdapat di dalam berkas terlampir.
    - Jangan berasumsi generik; ground instruksi pada kode yang ada.
 
@@ -269,6 +277,7 @@ FORMAT OUTPUT YANG DIHASILKAN (Langsung sajikan teks requirement tanpa salam ata
 
 Teks Instruksi Asli Pengguna:
 ${task.trim()}
+${revisionSection}
 ${codebaseSection}`;
 
       let refinedText = "";
