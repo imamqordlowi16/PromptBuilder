@@ -113,10 +113,34 @@
   function init() {
     loadSavedAiConfig();
     setupEventListeners();
+    checkServerConfig();
 
     // Default Role & Initial Render
     el.roleInput.value = state.role;
     updatePromptOutput();
+  }
+
+  // Check if backend has a pre-configured server key
+  async function checkServerConfig() {
+    try {
+      const res = await fetch("/api/config");
+      if (res.ok) {
+        const cfg = await res.json();
+        state.hasServerKey = !!cfg.hasServerKey;
+        if (state.hasServerKey) {
+          if (!el.aiApiKeyInput.value.trim()) {
+            el.aiApiKeyInput.placeholder = "🔒 Opsional (Kunci Server Gemini Aktif - Siap Pakai Langsung)";
+          }
+          const keyHint = document.querySelector(".key-hint");
+          if (keyHint) {
+            keyHint.innerHTML = "✅ <strong>Kunci Server Aktif:</strong> Anda & pengunjung lain bisa langsung mengeksekusi Gemini 3 secara gratis tanpa memasukkan key pribadi.";
+            keyHint.style.color = "#34d399";
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Could not check server config:", e);
+    }
   }
 
   // Event Listeners
@@ -349,7 +373,7 @@
       const apiKey = state.aiApiKey || localStorage.getItem("promptcraft_ai_key");
       let refined = null;
 
-      if (apiKey && apiKey.trim()) {
+      if ((apiKey && apiKey.trim()) || (state.hasServerKey && state.aiProvider === "gemini")) {
         try {
           const res = await fetch("/api/refine", {
             method: "POST",
@@ -513,7 +537,7 @@
     const promptText = compilePrompt();
     const apiKey = el.aiApiKeyInput.value.trim();
 
-    if (!apiKey) {
+    if (!apiKey && (!state.hasServerKey || state.aiProvider !== "gemini")) {
       showToast("Silakan masukkan API Key / Session Token terlebih dahulu.", "warning");
       el.aiApiKeyInput.focus();
       return;
