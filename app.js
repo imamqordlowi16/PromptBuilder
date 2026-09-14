@@ -22,7 +22,14 @@
     },
     savedPrompts: [],
     activeTab: "preview", // 'preview' or 'playground'
-    geminiApiKey: localStorage.getItem("promptcraft_gemini_api_key") || ""
+    aiProvider: localStorage.getItem("promptcraft_ai_provider") || "gemini",
+    aiModel: localStorage.getItem("promptcraft_ai_model") || "gemini-2.5-flash",
+    apiKeys: {
+      gemini: localStorage.getItem("promptcraft_key_gemini") || localStorage.getItem("promptcraft_gemini_api_key") || "",
+      claude: localStorage.getItem("promptcraft_key_claude") || "",
+      adacode: localStorage.getItem("promptcraft_key_adacode") || ""
+    },
+    customEndpoint: localStorage.getItem("promptcraft_endpoint_adacode") || "https://api.openai.com/v1"
   };
 
   // DOM Elements Cache
@@ -59,6 +66,11 @@
     el.tabPlaygroundBtn = document.getElementById("tabPlaygroundBtn");
     el.previewView = document.getElementById("previewView");
     el.playgroundView = document.getElementById("playgroundView");
+    el.aiProviderSelect = document.getElementById("aiProviderSelect");
+    el.aiModelSelect = document.getElementById("aiModelSelect");
+    el.customEndpointRow = document.getElementById("customEndpointRow");
+    el.customEndpointInput = document.getElementById("customEndpointInput");
+    el.apiKeyLabel = document.getElementById("apiKeyLabel");
     el.apiKeyInput = document.getElementById("apiKeyInput");
     el.btnSaveApiKey = document.getElementById("btnSaveApiKey");
     el.btnRunSimulation = document.getElementById("btnRunSimulation");
@@ -703,43 +715,100 @@
     }, 700);
   }
 
-  // Live Gemini API Integration
-  async function runLiveGemini() {
-    if (!state.geminiApiKey) {
-      showToast("Harap masukkan Gemini API Key terlebih dahulu di panel pengaturan!", "error");
+  const AI_MODELS = {
+    gemini: [
+      { id: "gemini-2.5-flash", name: "Gemini 2.5/3 Flash (Cepat & Cerdas)" },
+      { id: "gemini-2.5-pro", name: "Gemini 2.5/3 Pro (Penalaran Kompleks)" },
+      { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro (Long Context)" },
+      { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash (Ringan)" }
+    ],
+    claude: [
+      { id: "claude-3-7-sonnet-latest", name: "Claude 3.7 Sonnet (Hybrid Reasoning)" },
+      { id: "claude-3-5-sonnet-latest", name: "Claude 3.5 Sonnet (Coding Specialist)" },
+      { id: "claude-3-5-haiku-latest", name: "Claude 3.5 Haiku (Ultra Cepat)" }
+    ],
+    adacode: [
+      { id: "adacode-v1", name: "AdaCode v1 (Coding Assistant)" },
+      { id: "gpt-4o", name: "GPT-4o (OpenAI Compatible)" },
+      { id: "claude-3-5-sonnet", name: "Claude 3.5 (via Proxy)" },
+      { id: "deepseek-coder", name: "DeepSeek Coder (via Proxy)" }
+    ]
+  };
+
+  function updateAiProviderUI() {
+    const provider = state.aiProvider;
+    const models = AI_MODELS[provider] || AI_MODELS.gemini;
+
+    // Populate Models Select
+    el.aiModelSelect.innerHTML = models.map(m => {
+      return `<option value="${m.id}" ${m.id === state.aiModel ? 'selected' : ''}>${m.name}</option>`;
+    }).join("");
+
+    // Custom Endpoint row visibility
+    if (provider === "adacode") {
+      el.customEndpointRow.style.display = "block";
+      el.customEndpointInput.value = state.customEndpoint;
+      el.apiKeyLabel.textContent = "AdaCode Token / API Key:";
+      el.apiKeyInput.placeholder = "Bearer token / API Key AdaCode...";
+    } else if (provider === "claude") {
+      el.customEndpointRow.style.display = "none";
+      el.apiKeyLabel.textContent = "Anthropic Claude API Key / Session Token:";
+      el.apiKeyInput.placeholder = "sk-ant-...";
+    } else {
+      el.customEndpointRow.style.display = "none";
+      el.apiKeyLabel.textContent = "Google Gemini API Key:";
+      el.apiKeyInput.placeholder = "AIzaSy...";
+    }
+
+    // Populate existing saved API key for this provider
+    el.apiKeyInput.value = state.apiKeys[provider] || "";
+  }
+
+  // Live Multi-Provider AI Integration (Gemini, Claude, AdaCode)
+  async function runLiveAi() {
+    const provider = state.aiProvider;
+    const currentKey = state.apiKeys[provider] || el.apiKeyInput.value.trim();
+
+    if (!currentKey) {
+      showToast(`Harap masukkan API Key / Token untuk ${provider.toUpperCase()} terlebih dahulu!`, "error");
       return;
     }
 
     const promptText = compilePrompt();
+    const modelName = el.aiModelSelect.value || state.aiModel;
+    const customEndpoint = el.customEndpointInput ? el.customEndpointInput.value.trim() : "";
+
     el.simulationOutput.innerHTML = `
       <div style="display:flex; align-items:center; gap:8px; color:var(--accent-primary); font-weight:600; margin-bottom:12px;">
-        <span class="pulse-indicator"></span> Menghubungkan ke Gemini 2.5 Flash API...
+        <span class="pulse-indicator"></span> Menghubungkan ke ${provider.toUpperCase()} (${modelName})...
       </div>
     `;
 
     try {
-      // Use Gemini 2.5 Flash endpoint
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${encodeURIComponent(state.geminiApiKey)}`;
-      
-      const response = await fetch(url, {
+      // Send request via backend proxy endpoint /api/generate
+      const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }]
+          provider: provider,
+          model: modelName,
+          apiKey: currentKey,
+          customEndpoint: customEndpoint,
+          prompt: promptText
         })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error ? errorData.error.message : `HTTP Error ${response.status}`);
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || `HTTP Error ${response.status}`);
       }
 
-      const data = await response.json();
-      const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Tidak ada respon dari model.";
+      const reply = data.text || "Tidak ada respon dari model.";
 
       el.simulationOutput.innerHTML = `
         <div style="padding-bottom:10px; margin-bottom:12px; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
-          <span style="font-size:12px; color:var(--accent-emerald); font-weight:700;">✓ LIVE RESPONSE DARI GEMINI 2.5 FLASH</span>
+          <span style="font-size:12px; color:var(--accent-emerald); font-weight:700;">✓ LIVE RESPONSE (${provider.toUpperCase()} • ${modelName})</span>
           <button id="btnCopyApiResponse" class="btn btn-secondary btn-sm">Copy Jawaban</button>
         </div>
         <div style="white-space:pre-wrap; font-family:var(--font-sans); line-height:1.6; font-size:13px; color:#e2e8f0;">
@@ -749,19 +818,19 @@
 
       document.getElementById("btnCopyApiResponse").addEventListener("click", () => {
         navigator.clipboard.writeText(reply).then(() => {
-          showToast("Jawaban Gemini berhasil disalin!");
+          showToast("Jawaban AI berhasil disalin!");
         });
       });
 
     } catch (err) {
       el.simulationOutput.innerHTML = `
         <div style="padding:14px; background:rgba(244,63,94,0.15); border:1px solid rgba(244,63,94,0.4); border-radius:8px; color:#fecdd3;">
-          <h4 style="color:#f43f5e; margin-bottom:6px;">Gagal Menghubungi API Gemini</h4>
+          <h4 style="color:#f43f5e; margin-bottom:6px;">Gagal Menghubungi API ${provider.toUpperCase()}</h4>
           <p style="font-size:12px;">${err.message}</p>
-          <p style="font-size:11px; margin-top:8px; color:#fda4af;">Pastikan API Key valid dan terhubung dengan jaringan internet.</p>
+          <p style="font-size:11px; margin-top:8px; color:#fda4af;">Pastikan API Key / Token valid, kuota mencukupi, dan terhubung dengan internet.</p>
         </div>
       `;
-      showToast("Koneksi API Gemini Gagal", "error");
+      showToast(`Koneksi ${provider.toUpperCase()} Gagal: ` + err.message, "error");
     }
   }
 
@@ -886,13 +955,37 @@
     });
 
     el.btnRunSimulation.addEventListener("click", runSimulation);
-    el.btnRunLiveApi.addEventListener("click", runLiveGemini);
+    el.btnRunLiveApi.addEventListener("click", runLiveAi);
 
+    // AI Provider Switcher
+    el.aiProviderSelect.addEventListener("change", (e) => {
+      state.aiProvider = e.target.value;
+      localStorage.setItem("promptcraft_ai_provider", state.aiProvider);
+      state.aiModel = (AI_MODELS[state.aiProvider] && AI_MODELS[state.aiProvider][0]) ? AI_MODELS[state.aiProvider][0].id : "";
+      updateAiProviderUI();
+    });
+
+    // AI Model Switcher
+    el.aiModelSelect.addEventListener("change", (e) => {
+      state.aiModel = e.target.value;
+      localStorage.setItem("promptcraft_ai_model", state.aiModel);
+    });
+
+    // Custom Endpoint
+    if (el.customEndpointInput) {
+      el.customEndpointInput.addEventListener("input", (e) => {
+        state.customEndpoint = e.target.value;
+        localStorage.setItem("promptcraft_endpoint_adacode", state.customEndpoint);
+      });
+    }
+
+    // Save API Key per provider
     el.btnSaveApiKey.addEventListener("click", () => {
       const key = el.apiKeyInput.value.trim();
-      state.geminiApiKey = key;
-      localStorage.setItem("promptcraft_gemini_api_key", key);
-      showToast(key ? "Gemini API Key tersimpan!" : "API Key dihapus!");
+      const provider = state.aiProvider;
+      state.apiKeys[provider] = key;
+      localStorage.setItem(`promptcraft_key_${provider}`, key);
+      showToast(key ? `API Key / Token untuk ${provider.toUpperCase()} tersimpan!` : "API Key dihapus!");
     });
   }
 
@@ -903,8 +996,9 @@
     setupTabs();
     bindEvents();
 
-    if (state.geminiApiKey) {
-      el.apiKeyInput.value = state.geminiApiKey;
+    if (el.aiProviderSelect) {
+      el.aiProviderSelect.value = state.aiProvider;
+      updateAiProviderUI();
     }
 
     renderDomainDropdown();

@@ -241,28 +241,58 @@
           </div>
         </div>
 
-        <!-- View 2: Live AI Playground & Simulation -->
+        <!-- View 2: Live AI Playground & Multi-Model Simulation -->
         <div id="playgroundView" class="playground-container">
           
-          <!-- API Key Box -->
+          <!-- AI Provider & Model Config Box -->
           <div class="api-settings-box">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <span style="font-size:12px; font-weight:700; color:#38bdf8;">Koneksi Gemini API (Opsional)</span>
-              <span style="font-size:10px; color:var(--text-muted);">Tersimpan aman di LocalStorage</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <span style="font-size:12px; font-weight:700; color:#38bdf8;">⚙️ Konfigurasi Model AI</span>
+              <span style="font-size:10px; color:var(--text-muted);">Tersimpan aman di browser</span>
             </div>
-            <div class="api-key-input-row">
-              <input type="password" id="apiKeyInput" class="form-input" style="font-size:12px; padding:6px 10px;" placeholder="Masukkan Google Gemini API Key Anda..." />
-              <button id="btnSaveApiKey" class="btn btn-secondary btn-sm">Simpan</button>
+
+            <!-- Provider Selector -->
+            <div style="display:flex; gap:8px; margin-bottom:10px;">
+              <div style="flex:1;">
+                <label style="font-size:11px; color:var(--text-secondary); display:block; margin-bottom:4px;">Provider AI:</label>
+                <select id="aiProviderSelect" class="select-control" style="font-size:12px; padding:7px 10px;">
+                  <option value="gemini">🌟 Google Gemini</option>
+                  <option value="claude">🟣 Anthropic Claude</option>
+                  <option value="adacode">⚡ AdaCode / Custom Proxy</option>
+                </select>
+              </div>
+
+              <div style="flex:1;">
+                <label style="font-size:11px; color:var(--text-secondary); display:block; margin-bottom:4px;">Pilihan Model:</label>
+                <select id="aiModelSelect" class="select-control" style="font-size:12px; padding:7px 10px;">
+                  <!-- Dynamically populated based on provider -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Custom Endpoint URL for AdaCode / Custom Proxy -->
+            <div id="customEndpointRow" style="display:none; margin-bottom:10px;">
+              <label style="font-size:11px; color:var(--text-secondary); display:block; margin-bottom:4px;">Custom Base URL / Endpoint:</label>
+              <input type="text" id="customEndpointInput" class="form-input" style="font-size:12px; padding:7px 10px;" placeholder="https://api.adacode.com/v1 atau proxy Anda..." />
+            </div>
+
+            <!-- API Key / Session Token Row -->
+            <div>
+              <label style="font-size:11px; color:var(--text-secondary); display:block; margin-bottom:4px;" id="apiKeyLabel">API Key / Session Token:</label>
+              <div class="api-key-input-row">
+                <input type="password" id="apiKeyInput" class="form-input" style="font-size:12px; padding:7px 10px;" placeholder="Masukkan API Key / Session Token..." />
+                <button id="btnSaveApiKey" class="btn btn-secondary btn-sm">Simpan</button>
+              </div>
             </div>
           </div>
 
           <!-- Playground Action Controls -->
           <div style="display:flex; gap:8px;">
             <button id="btnRunSimulation" class="btn btn-secondary" style="flex:1;">
-              ⚡ Simulasi Penalaran Lokal
+              ⚡ Simulasi Lokal (Offline)
             </button>
             <button id="btnRunLiveApi" class="btn btn-primary" style="flex:1;">
-              🚀 Jalankan Live via Gemini
+              🚀 Jalankan Live ke AI
             </button>
           </div>
 
@@ -270,7 +300,7 @@
           <div id="simulationOutput" class="simulation-response-area">
             <div style="text-align:center; padding:40px 10px; color:var(--text-muted);">
               <span style="font-size:32px; display:block; margin-bottom:8px;">💡</span>
-              Klik <strong>"Simulasi Penalaran Lokal"</strong> untuk melihat proyeksi jawaban ahli, atau gunakan <strong>"Jalankan Live via Gemini"</strong> untuk menguji prompt secara langsung.
+              Pilih provider (<strong>Google Gemini</strong>, <strong>Claude</strong>, atau <strong>AdaCode</strong>), masukkan API Key/Session Anda, lalu klik <strong>"Jalankan Live ke AI"</strong>. Atau gunakan <strong>"Simulasi Lokal"</strong> untuk mencoba secara instan!
             </div>
           </div>
 
@@ -321,9 +351,9 @@
   </script>
 
   <!-- Application Modules -->
-  <script src="data/experts.js?v=3"></script>
-  <script src="data/frameworks.js?v=3"></script>
-  <script src="data/templates.js?v=3"></script>
-  <script src="app.js?v=3"></script>
+  <script src="data/experts.js?v=4"></script>
+  <script src="data/frameworks.js?v=4"></script>
+  <script src="data/templates.js?v=4"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
