@@ -39,7 +39,7 @@
     role: ROLE_PRESETS.fullstack_engineer,
     task: "",
     aiProvider: "gemini",
-    aiModel: "gemini-3-flash",
+    aiModel: "gemini-3.6-flash",
     aiEndpoint: "",
     aiApiKey: ""
   };
@@ -47,11 +47,10 @@
   // Provider Models Catalog (Dropdown Options)
   const PROVIDER_MODELS = {
     gemini: [
-      { value: "gemini-3-flash", label: "Gemini 3 Flash (Terbaru, Cepat & Cerdas) ⭐ Default", default: true },
-      { value: "gemini-3-pro", label: "Gemini 3 Pro (Penalaran Kompleks & Kode Arsitektur)" },
-      { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
-      { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
-      { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash" },
+      { value: "gemini-3.6-flash", label: "Gemini 3.6 Flash (Terbaru, Cepat & Cerdas) ⭐ Default", default: true },
+      { value: "gemini-3.6-pro", label: "Gemini 3.6 Pro (Penalaran Kompleks & Kode Arsitektur)" },
+      { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash (Alternatif Cepat)" },
+      { value: "gemini-1.5-flash", label: "Gemini 1.5 Flash (Ringan)" },
       { value: "gemini-1.5-pro", label: "Gemini 1.5 Pro (Long Context)" },
       { value: "custom", label: "✏️ Ketik Nama Model Lain (Kustom)" }
     ],
@@ -587,7 +586,11 @@
           el.aiProviderSelect.value = config.provider;
         }
         if (config.model) {
-          state.aiModel = config.model;
+          if (config.model === "gemini-2.5-flash" || config.model === "gemini-3-flash" || config.model === "gemini-3") {
+            state.aiModel = "gemini-3.6-flash";
+          } else {
+            state.aiModel = config.model;
+          }
         }
         if (config.endpoint) {
           state.aiEndpoint = config.endpoint;

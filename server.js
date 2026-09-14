@@ -90,29 +90,41 @@ async function handleAiProxy(req, res) {
         replyText = data.choices?.[0]?.message?.content || "Tidak ada respon dari model.";
 
       } else {
-        // Default: Google Gemini API (Supports Gemini 2.5/3 Flash, 2.5/3 Pro, 1.5 Pro, etc.)
-        let geminiModel = (model || "gemini-2.5-flash").trim();
-        if (geminiModel === "gemini-3-flash" || geminiModel === "gemini-3") {
-          geminiModel = "gemini-2.5-flash";
-        } else if (geminiModel === "gemini-3-pro") {
-          geminiModel = "gemini-2.5-pro";
+        // Default: Google Gemini API (Supports Gemini 3.6 Flash, 3.6 Pro, etc.)
+        let geminiModel = (model || "gemini-3.6-flash").trim();
+        if (geminiModel === "gemini-3-flash" || geminiModel === "gemini-3" || geminiModel === "gemini-2.5-flash") {
+          geminiModel = "gemini-3.6-flash";
+        } else if (geminiModel === "gemini-3-pro" || geminiModel === "gemini-2.5-pro") {
+          geminiModel = "gemini-3.6-pro";
         }
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
-        
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }]
-          })
-        });
+        const executeGemini = async (targetModel) => {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(targetModel)}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }]
+            })
+          });
+          const data = await response.json();
+          return { ok: response.ok, status: response.status, data };
+        };
 
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error?.message || `Gemini API Error (${response.status})`);
+        let result = await executeGemini(geminiModel);
+
+        // Fallback to gemini-3.6-flash or gemini-2.0-flash if the requested model is deprecated or not found
+        if (!result.ok && geminiModel !== "gemini-3.6-flash") {
+          result = await executeGemini("gemini-3.6-flash");
         }
-        replyText = data.candidates?.[0]?.content?.parts?.[0]?.text || "Tidak ada respon dari Gemini.";
+        if (!result.ok && geminiModel !== "gemini-2.0-flash") {
+          result = await executeGemini("gemini-2.0-flash");
+        }
+
+        if (!result.ok) {
+          throw new Error(result.data.error?.message || `Gemini API Error (${result.status})`);
+        }
+        replyText = result.data.candidates?.[0]?.content?.parts?.[0]?.text || "Tidak ada respon dari Gemini.";
       }
 
       res.writeHead(200, { "Content-Type": "application/json" });
@@ -197,24 +209,36 @@ ${task.trim()}`;
         if (!response.ok) throw new Error(data.error?.message || `API Error (${response.status})`);
         refinedText = data.choices?.[0]?.message?.content?.trim() || "";
       } else {
-        let geminiModel = (model || "gemini-2.5-flash").trim();
-        if (geminiModel === "gemini-3-flash" || geminiModel === "gemini-3") {
-          geminiModel = "gemini-2.5-flash";
-        } else if (geminiModel === "gemini-3-pro") {
-          geminiModel = "gemini-2.5-pro";
+        let geminiModel = (model || "gemini-3.6-flash").trim();
+        if (geminiModel === "gemini-3-flash" || geminiModel === "gemini-3" || geminiModel === "gemini-2.5-flash") {
+          geminiModel = "gemini-3.6-flash";
+        } else if (geminiModel === "gemini-3-pro" || geminiModel === "gemini-2.5-pro") {
+          geminiModel = "gemini-3.6-pro";
         }
 
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
-        const response = await fetch(url, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: refinePrompt }] }]
-          })
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error?.message || `Gemini Error (${response.status})`);
-        refinedText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+        const executeRefine = async (targetModel) => {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(targetModel)}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
+          const response = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: refinePrompt }] }]
+            })
+          });
+          const data = await response.json();
+          return { ok: response.ok, status: response.status, data };
+        };
+
+        let result = await executeRefine(geminiModel);
+        if (!result.ok && geminiModel !== "gemini-3.6-flash") {
+          result = await executeRefine("gemini-3.6-flash");
+        }
+        if (!result.ok && geminiModel !== "gemini-2.0-flash") {
+          result = await executeRefine("gemini-2.0-flash");
+        }
+
+        if (!result.ok) throw new Error(result.data.error?.message || `Gemini Error (${result.status})`);
+        refinedText = result.data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
       }
 
       res.writeHead(200, { "Content-Type": "application/json" });
