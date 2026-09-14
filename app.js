@@ -37,11 +37,13 @@
   // State Management
   const state = {
     role: ROLE_PRESETS.fullstack_engineer,
-    task: "",
+    rawTask: "",
+    refinedTask: null,
     aiProvider: "gemini",
     aiModel: "gemini-3.6-flash",
     aiEndpoint: "",
-    aiApiKey: ""
+    aiApiKey: "",
+    hasServerKey: false
   };
 
   // Provider Models Catalog (Dropdown Options)
@@ -82,6 +84,7 @@
     btnRefineTask: document.getElementById("btnRefineTask"),
     refineSpinner: document.getElementById("refineSpinner"),
     promptDisplay: document.getElementById("promptDisplay"),
+    statRefinedBadge: document.getElementById("statRefinedBadge"),
     statScore: document.getElementById("statScore"),
     statChars: document.getElementById("statChars"),
     statWords: document.getElementById("statWords"),
@@ -165,7 +168,8 @@
 
     // Task Input Edit
     el.taskInput.addEventListener("input", (e) => {
-      state.task = e.target.value;
+      state.rawTask = e.target.value;
+      state.refinedTask = null; // reset to user's raw text on direct editing
       updatePromptOutput();
     });
 
@@ -174,15 +178,17 @@
       el.rolePresetSelect.value = "blazor_dotnet";
       state.role = ROLE_PRESETS.blazor_dotnet;
       el.roleInput.value = state.role;
-      state.task = SAMPLE_TASKS.blazor_etl;
-      el.taskInput.value = state.task;
+      state.rawTask = SAMPLE_TASKS.blazor_etl;
+      state.refinedTask = null;
+      el.taskInput.value = state.rawTask;
       updatePromptOutput();
       showToast("Contoh Blazor & ETL dimuat!");
     });
 
     // Clear Task
     el.btnClearTask.addEventListener("click", () => {
-      state.task = "";
+      state.rawTask = "";
+      state.refinedTask = null;
       el.taskInput.value = "";
       updatePromptOutput();
       showToast("Kotak tugas dibersihkan.");
@@ -270,7 +276,8 @@
   // Compile Master Prompt (Clean & Strictly Non-Repetitive)
   function compilePrompt() {
     const roleText = (state.role && state.role.trim()) ? state.role.trim() : "Senior Software Engineer";
-    const taskText = (state.task && state.task.trim()) ? state.task.trim() : "(Tuliskan tugas atau requirement Anda pada kolom sebelah kiri...)";
+    const activeTask = state.refinedTask || state.rawTask;
+    const taskText = (activeTask && activeTask.trim()) ? activeTask.trim() : "(Tuliskan tugas atau requirement Anda pada kolom sebelah kiri...)";
 
     let prompt = `### ROLE\n${roleText}\n\n`;
     prompt += `### TASK\n${taskText}\n\n`;
@@ -320,7 +327,8 @@
     el.statTokens.textContent = `~${tokens} Token`;
 
     // Prompt Precision Rate (%)
-    const score = calculatePromptScore(state.role, state.task);
+    const activeTask = state.refinedTask || state.rawTask;
+    const score = calculatePromptScore(state.role, activeTask);
     if (el.statScore) {
       el.statScore.textContent = `🎯 Presisi: ${score}%`;
       el.statScore.className = "badge badge-score";
@@ -333,6 +341,15 @@
       } else {
         el.statScore.classList.add("score-low");
         el.statScore.title = "Tingkat Presisi Rendah (Lengkapi task atau klik tombol ✨ Perbaiki)";
+      }
+    }
+
+    // Toggle "Dirapikan" Badge
+    if (el.statRefinedBadge) {
+      if (state.refinedTask) {
+        el.statRefinedBadge.classList.remove("hidden");
+      } else {
+        el.statRefinedBadge.classList.add("hidden");
       }
     }
   }
@@ -401,11 +418,10 @@
         refined = cleanAndStructureTaskLocally(rawText);
       }
 
-      // Apply Refined Text
-      state.task = refined;
-      el.taskInput.value = refined;
+      // Apply Refined Text ONLY to the output master prompt (Keep user's input textarea untouched)
+      state.refinedTask = refined;
       updatePromptOutput();
-      showToast("✨ Kalimat tugas berhasil diperbaiki & dirapikan!", "success");
+      showToast("✨ Hasil Master Prompt berhasil diperbaiki & dirapikan! (Teks input kiri tetap utuh)", "success");
 
     } catch (err) {
       showToast("Gagal merapikan teks: " + err.message, "error");

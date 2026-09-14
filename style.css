@@ -429,6 +429,14 @@ body {
   color: #67e8f9;
 }
 
+.badge-refined {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(139, 92, 246, 0.5);
+  color: #c4b5fd;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.25);
+}
+
 .badge-score {
   font-weight: 700;
   transition: all var(--transition-fast);
