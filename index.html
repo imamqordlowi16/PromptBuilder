@@ -117,14 +117,22 @@ Contoh:
             <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none;">
 
             <!-- Drag, Drop & Paste Zone -->
-            <div class="dropzone" id="dropzone" tabindex="0" title="Klik atau seret berkas ke sini, atau tekan Ctrl + V">
+            <div class="dropzone" id="dropzone" tabindex="0">
               <div class="dropzone-content">
                 <span class="dropzone-icon">📥</span>
                 <div class="dropzone-text-block">
                   <p class="dropzone-text">
-                    <strong>Tarik & lepas berkas ke sini</strong>, pilih dari folder, atau tekan <code>Ctrl + V</code> untuk menempel kode / berkas
+                    <strong>Tarik & lepas berkas / folder ke sini</strong>, atau pilih melalui tombol:
                   </p>
-                  <span class="dropzone-sub">Mendukung majemuk: .razor, .cs, .sql, .ts, .js, .json, .xlsx, .txt, dll.</span>
+                  <div class="dropzone-buttons">
+                    <button type="button" id="btnDropzoneFiles" class="btn btn-sm btn-primary">
+                      📄 Pilih Berkas (Bisa Banyak / Multiple)
+                    </button>
+                    <button type="button" id="btnDropzoneFolder" class="btn btn-sm btn-secondary">
+                      📁 Pilih 1 Folder (Baca Semua Isi)
+                    </button>
+                  </div>
+                  <span class="dropzone-sub">Bisa pilih berkas berkali-kali (otomatis digabung). Mendukung <code>Ctrl + V</code> untuk paste teks/kode/file.</span>
                 </div>
               </div>
             </div>
@@ -197,6 +205,6 @@ Senior Polyglot Full-Stack Engineer ahli dalam SEMUA bahasa pemrograman utama...
     <div id="toastContainer" class="toast-container"></div>
   </div>
 
-  <script src="app.js?v=16"></script>
+  <script src="app.js?v=17"></script>
 </body>
 </html>

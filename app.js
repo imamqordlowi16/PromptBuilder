@@ -68,6 +68,8 @@
     attCountBadge: document.getElementById("attCountBadge"),
     btnBrowseFiles: document.getElementById("btnBrowseFiles"),
     btnBrowseFolder: document.getElementById("btnBrowseFolder"),
+    btnDropzoneFiles: document.getElementById("btnDropzoneFiles"),
+    btnDropzoneFolder: document.getElementById("btnDropzoneFolder"),
     btnClearAttachments: document.getElementById("btnClearAttachments"),
     fileInput: document.getElementById("fileInput"),
     folderInput: document.getElementById("folderInput"),
@@ -141,10 +143,13 @@
   // Attachment System Handlers (Browse, Folder, Drag & Drop, Paste)
   function setupAttachmentHandlers() {
     // 1. Browse Files (Multiple)
-    el.btnBrowseFiles.addEventListener("click", () => {
+    const triggerFilePicker = (e) => {
+      if (e) e.stopPropagation();
       el.fileInput.value = "";
       el.fileInput.click();
-    });
+    };
+    el.btnBrowseFiles.addEventListener("click", triggerFilePicker);
+    if (el.btnDropzoneFiles) el.btnDropzoneFiles.addEventListener("click", triggerFilePicker);
 
     el.fileInput.addEventListener("change", (e) => {
       if (e.target.files && e.target.files.length > 0) {
@@ -153,10 +158,13 @@
     });
 
     // 2. Browse Entire Folder (webkitdirectory)
-    el.btnBrowseFolder.addEventListener("click", () => {
+    const triggerFolderPicker = (e) => {
+      if (e) e.stopPropagation();
       el.folderInput.value = "";
       el.folderInput.click();
-    });
+    };
+    el.btnBrowseFolder.addEventListener("click", triggerFolderPicker);
+    if (el.btnDropzoneFolder) el.btnDropzoneFolder.addEventListener("click", triggerFolderPicker);
 
     el.folderInput.addEventListener("change", (e) => {
       if (e.target.files && e.target.files.length > 0) {
