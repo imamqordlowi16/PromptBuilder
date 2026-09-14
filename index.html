@@ -1,359 +1,229 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="PromptCraft Studio - Aplikasi Pembuat Prompt AI Profesional dengan Persona Ahli di Semua Bidang, Framework Standar Dunia, Quality Grader, dan Live Playground." />
-  <meta name="keywords" content="Prompt Builder, Prompt Engineering, AI Expert, Multi-Domain Persona, CO-STAR, Chain of Thought, Gemini, ChatGPT" />
-  <meta name="author" content="ZeenIQ Tools" />
-  <title>PromptCraft Studio — AI Prompt Builder & Multi-Domain Expert</title>
-  
-  <link rel="stylesheet" href="style.css" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromptCraft AI - Role & Task Prompt Architect</title>
+  <meta name="description" content="Aplikasi pembuat prompt AI presisi berbasis Role dan Task dengan fitur perbaikan kalimat otomatis, anti-duplikasi, dan pengujian langsung ke Gemini, Claude, dan AdaCode.">
+  <link rel="stylesheet" href="style.css?v=10">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
-
-  <!-- Top Navigation / Application Header -->
-  <header class="app-header">
-    <div class="brand-section">
-      <div class="brand-logo" title="PromptCraft Studio">⚡</div>
-      <div class="brand-text">
-        <h1>
-          PromptCraft Studio 
-          <span class="brand-badge">Enterprise AI</span>
-        </h1>
-        <div class="brand-tagline">Arsitek Prompt Berstandar Industri &amp; Pakar Multi-Disiplin</div>
-      </div>
-    </div>
-
-    <div class="header-actions">
-      <div style="display:flex; align-items:center; gap:8px; background:rgba(14,19,31,0.6); padding:6px 12px; border-radius:20px; border:1px solid var(--border-subtle); font-size:12px; color:var(--text-secondary);">
-        <span class="pulse-indicator"></span>
-        <span>AI Ready • Standar Model 2026</span>
-      </div>
-      <button id="btnMagicEnhance" class="btn btn-magic" title="Sempurnakan prompt secara otomatis dengan standar industri">
-        <span>✨ Magic Enhance</span>
-      </button>
-    </div>
-  </header>
-
-  <!-- Main Multi-Column Layout -->
-  <main class="main-layout">
-    
-    <!-- LEFT PANEL: Expert Domains & Frameworks -->
-    <aside class="panel">
-      <div class="panel-header">
-        <div class="panel-title-group">
-          <span class="panel-icon">🏛️</span>
-          <span class="panel-title">Pakar &amp; Framework</span>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-icon">✨</div>
+        <div class="brand-text">
+          <h1 class="brand-title">PromptCraft <span>AI</span></h1>
+          <p class="brand-tagline">Precision Role & Task Prompt Architect</p>
         </div>
       </div>
-
-      <div class="panel-body">
-        <!-- Sidebar Navigation Tabs -->
-        <div class="sidebar-tabs">
-          <button id="tabNavExperts" class="sidebar-tab-btn active" onclick="switchSidebarTab('experts')">Pakar &amp; Framework</button>
-          <button id="tabNavTemplates" class="sidebar-tab-btn" onclick="switchSidebarTab('templates')">Bank Template</button>
-        </div>
-
-        <!-- Tab 1: Experts & Frameworks Selection -->
-        <div id="sidebarExpertsSection">
-          <div class="domain-select-wrapper">
-            <div class="section-label">
-              <span>PILIH BIDANG KEAHLIAN</span>
-            </div>
-            <div class="custom-select-group">
-              <select id="domainSelect" class="select-control" aria-label="Pilih Bidang Keahlian">
-                <!-- Populated dynamically via experts.js -->
-              </select>
-            </div>
-          </div>
-
-          <div class="section-label">
-            <span>PILIH PERSONA AHLI</span>
-          </div>
-          <div id="personaContainer" class="persona-selector-grid">
-            <!-- Populated dynamically -->
-          </div>
-
-          <div class="section-label" style="margin-top: 18px;">
-            <span>FRAMEWORK REKAYASA PROMPT</span>
-          </div>
-          <div id="frameworkContainer" class="framework-list">
-            <!-- Populated dynamically via frameworks.js -->
-          </div>
-        </div>
-
-        <!-- Tab 2: Template Library Bank -->
-        <div id="sidebarTemplatesSection" style="display: none;">
-          <div class="custom-select-group">
-            <input type="text" id="templateSearch" class="form-input" style="font-size:12px; padding:8px 12px;" placeholder="Cari template prompt..." />
-          </div>
-          <div id="templateListContainer" style="margin-top:12px;">
-            <!-- Populated dynamically via templates.js -->
-          </div>
-        </div>
-
+      
+      <div class="header-actions">
+        <span class="mode-badge">⚡ Mode Praktis: Role & Task</span>
+        <a href="https://github.com/imamqordlowi16/PromptBuilder" target="_blank" rel="noopener noreferrer" class="btn btn-ghost btn-sm">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          GitHub
+        </a>
       </div>
-    </aside>
+    </header>
 
-    <!-- CENTER PANEL: Interactive Prompt Builder Form -->
-    <section class="panel builder-panel">
-      <div class="panel-header">
-        <div class="panel-title-group">
-          <span class="panel-icon">⚙️</span>
-          <span class="panel-title">Studio Arsitektur Prompt</span>
-        </div>
-        <button id="btnSavePrompt" class="btn btn-secondary btn-sm" title="Simpan ke koleksi template kustom">
-          <span>💾 Simpan Prompt</span>
-        </button>
-      </div>
-
-      <div class="panel-body">
-        <!-- Top Banner Displaying Active Persona -->
-        <div id="activeBanner" class="active-persona-banner">
-          <!-- Populated dynamically -->
-        </div>
-
-        <!-- Dynamic Framework Form Fields -->
-        <div id="formFieldsContainer" class="form-section">
-          <!-- Populated dynamically based on chosen framework -->
-        </div>
-
-        <!-- Dynamic Variables Section (Auto-detected from {{var}}) -->
-        <div id="variablesSection" class="accordion-box open" style="display:none;">
-          <div class="accordion-header">
-            <div class="accordion-title">
-              <span>🏷️ Variabel Dinamis Terdeteksi</span>
-              <span class="brand-badge" style="font-size: 9px;">Dynamic Tags</span>
+    <!-- Main Workspace (2-Column Grid) -->
+    <main class="main-layout">
+      <!-- Left Column: Input Builder -->
+      <section class="builder-pane">
+        <!-- Card 1: Role -->
+        <div class="card card-role">
+          <div class="card-header">
+            <div class="header-left">
+              <span class="card-step">1</span>
+              <div>
+                <h2 class="card-title">Role (Peran Pakar AI)</h2>
+                <p class="card-subtitle">Pilih peran pakar siap pakai atau ketik kustomisasi Anda</p>
+              </div>
             </div>
-            <span class="accordion-chevron">▼</span>
           </div>
-          <div class="accordion-content">
-            <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">
-              Placeholder format <code>{{nama_variabel}}</code> otomatis diubah menjadi input dinamis:
-            </p>
-            <div id="variablesContainer">
-              <!-- Populated dynamically -->
-            </div>
+
+          <div class="role-preset-row">
+            <label for="rolePresetSelect" class="input-label">Pilih Preset Pakar:</label>
+            <select id="rolePresetSelect" class="form-select">
+              <option value="fullstack_engineer" selected>👑 Master Polyglot Full-Stack Developer (Semua Bahasa)</option>
+              <option value="blazor_dotnet">⚡ Senior C# / .NET & Blazor Architect</option>
+              <option value="senior_architect">🏛️ Principal Systems & Software Architect</option>
+              <option value="frontend_engineer">⚛️ Senior Frontend & UI/UX Specialist (React/Vue/Web)</option>
+              <option value="mobile_engineer">📱 Senior Mobile Engineer (Flutter, iOS, Android)</option>
+              <option value="ai_ml_engineer">🧠 AI / ML & Python Data Systems Engineer</option>
+              <option value="devops_sre">☁️ DevOps, Cloud & SRE Master</option>
+              <option value="database_architect">🗄️ Senior Database Administrator & SQL Specialist</option>
+              <option value="custom">✏️ Kustom / Tulis Peran Sendiri</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <textarea id="roleInput" class="form-textarea role-textarea" rows="3" placeholder="Tuliskan peran dan keahlian spesifik pakar yang Anda inginkan..."></textarea>
           </div>
         </div>
 
-        <!-- Negative Constraints & Guardrails Accordion -->
-        <div class="accordion-box">
-          <div class="accordion-header">
-            <div class="accordion-title">
-              <span>🛑 Batasan Negatif &amp; Guardrails (Anti-Halusinasi)</span>
-              <span class="brand-badge" style="font-size: 9px;">Keamanan</span>
+        <!-- Card 2: Task with Auto-Refine -->
+        <div class="card card-task">
+          <div class="card-header">
+            <div class="header-left">
+              <span class="card-step">2</span>
+              <div>
+                <h2 class="card-title">Task (Tugas & Requirement Anda)</h2>
+                <p class="card-subtitle">Tuliskan instruksi tugas secara bebas. Sistem akan merapikannya secara otomatis!</p>
+              </div>
             </div>
-            <span class="accordion-chevron">▼</span>
-          </div>
-          <div class="accordion-content">
-            <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">
-              Instruksikan hal-hal yang DILARANG dilakukan oleh AI untuk mencegah misinformasi dan menjaga kualitas respon.
-            </p>
-            <div id="constraintsList" class="constraints-list">
-              <!-- Populated dynamically -->
-            </div>
-            <div class="add-constraint-row">
-              <input type="text" id="newConstraintInput" class="form-input" placeholder="Tambah larangan baru (contoh: Hindari menggunakan kata klise)..." />
-              <button id="btnAddConstraint" class="btn btn-secondary">Tambah</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Few-Shot Learning Examples Accordion -->
-        <div class="accordion-box">
-          <div class="accordion-header">
-            <div class="accordion-title">
-              <span>🎯 Few-Shot Learning (Contoh Input &amp; Output Ideal)</span>
-              <span class="brand-badge" style="font-size: 9px;">Akurasi +80%</span>
-            </div>
-            <span class="accordion-chevron">▼</span>
-          </div>
-          <div class="accordion-content">
-            <p style="font-size:11px; color:var(--text-muted); margin-bottom:10px;">
-              Memberikan pasangan contoh nyata melatih model untuk mengikuti pola gaya bahasa dan struktur luaran dengan presisi tinggi.
-            </p>
-            <div id="fewShotContainer">
-              <!-- Populated dynamically -->
-            </div>
-            <button id="btnAddFewShot" class="btn btn-secondary btn-sm" style="margin-top:6px;">
-              + Tambah Pasangan Contoh
-            </button>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- RIGHT PANEL: Live Output, Quality Grader & Playground -->
-    <section class="panel output-panel">
-      <div class="panel-header">
-        <div class="panel-title-group">
-          <span class="panel-icon">✨</span>
-          <span class="panel-title">Hasil Prompt &amp; Pengujian</span>
-        </div>
-      </div>
-
-      <div class="panel-body">
-        
-        <!-- Quality Grader Card -->
-        <div class="grader-box">
-          <div class="grader-left">
-            <div id="scoreCircle" class="score-circle">
-              <div id="scoreVal" class="score-circle-inner">85%</div>
-            </div>
-            <div class="grader-details">
-              <h4 id="scoreStatus">Prompt Standar Elite</h4>
-              <p id="scoreTips">Prompt memiliki struktur yang kuat dan batasan jelas.</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Output Switcher Tabs -->
-        <div class="output-tab-bar">
-          <button id="tabPreviewBtn" class="output-tab-btn active">Live Prompt Preview</button>
-          <button id="tabPlaygroundBtn" class="output-tab-btn">🚀 Uji &amp; Simulasi AI</button>
-        </div>
-
-        <!-- View 1: Compiled Prompt Text Preview -->
-        <div id="previewView" class="prompt-preview-container">
-          <div class="prompt-preview-header">
-            <div class="stat-group">
-              <span id="charCount">0 Karakter</span>
-              <span>•</span>
-              <span id="wordCount">0 Kata</span>
-              <span>•</span>
-              <span id="tokenCount">~0 Tokens</span>
-            </div>
-            <div class="copy-actions-group">
-              <button id="btnDownload" class="btn btn-secondary btn-sm" title="Unduh prompt sebagai file Markdown (.md)">
-                ⬇️ Unduh .MD
+            <div class="header-tools">
+              <button id="btnSampleBlazor" class="btn btn-chip" title="Gunakan contoh instruksi Blazor ETL & Dynamic Grid">
+                📄 Contoh Blazor ETL
               </button>
-              <button id="btnCopy" class="btn btn-primary btn-sm" title="Salin prompt ke clipboard">
-                📋 Salin Prompt
+              <button id="btnClearTask" class="btn btn-chip btn-chip-danger" title="Bersihkan kotak input">
+                🗑️ Bersihkan
               </button>
             </div>
           </div>
-          <div id="promptDisplay" class="prompt-text-display" spellcheck="false">
-            <!-- Compiled prompt text -->
+
+          <div class="form-group task-input-group">
+            <textarea id="taskInput" class="form-textarea task-textarea" rows="12" placeholder="Tempel atau ketik requirement tugas Anda di sini...
+Contoh:
+- Update PDN.razor tab 1 (Rasio PDN)
+- Ubah fungsi LoadPdnKelompokPage ganti skema etl jadi RASIO_PDN_SEBELUM_TD_VALAS_KELOMPOK
+- Ubah grid jadi LoadPivotAsync dan pasang filter tanggal dan kelompok bank..."></textarea>
+          </div>
+
+          <!-- Action Bar Auto-Perbaiki -->
+          <div class="refine-action-bar">
+            <button id="btnRefineTask" class="btn btn-refine" title="Perbaiki dan rapikan susunan kalimat tugas yang berantakan">
+              <span class="refine-icon">✨</span>
+              <span class="refine-text">Perbaiki & Rapikan Kalimat Task</span>
+              <span id="refineSpinner" class="spinner hidden"></span>
+            </button>
+            <p class="refine-hint">
+              💡 <strong>Fitur Otomatis:</strong> Kalimat berantakan, typo, atau kalimat panjang yang campur aduk akan otomatis distrukturkan menjadi requirement sistematis dan bebas repetisi.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Output & Live AI Test -->
+      <section class="output-pane">
+        <!-- Output Display Card -->
+        <div class="card card-output">
+          <div class="card-header">
+            <div class="header-left">
+              <div class="status-indicator"></div>
+              <div>
+                <h2 class="card-title">Hasil Master Prompt</h2>
+                <p class="card-subtitle">Tersinkronisasi otomatis, rapi, dan siap disalin ke AI mana pun</p>
+              </div>
+            </div>
+            <div class="stats-badge-group">
+              <span id="statChars" class="badge">0 Karakter</span>
+              <span id="statWords" class="badge">0 Kata</span>
+              <span id="statTokens" class="badge badge-accent">~0 Token</span>
+            </div>
+          </div>
+
+          <!-- Prompt Preview Box -->
+          <div class="prompt-preview-wrapper">
+            <pre id="promptDisplay" class="prompt-pre"><code>### ROLE
+Senior Polyglot Full-Stack Engineer ahli dalam SEMUA bahasa pemrograman utama...
+
+### TASK
+(Tuliskan tugas Anda pada kolom di sebelah kiri...)
+
+### KETENTUAN IMPLEMENTASI
+- Fokus terisolasi: Ubah HANYA bagian/file/fungsi yang dispesifikasikan (hindari efek samping).
+- Error handling & validasi: Terapkan penanganan data dan error menyeluruh.
+- Format jawaban: Langsung sajikan kode/solusi inti dengan penjelasan yang jelas dan praktis.</code></pre>
+          </div>
+
+          <!-- Output Action Buttons -->
+          <div class="output-action-row">
+            <button id="btnCopyPrompt" class="btn btn-primary btn-lg">
+              <span id="copyIcon">📋</span>
+              <span id="copyText">Salin Prompt Lengkap</span>
+            </button>
+            <button id="btnToggleAiTest" class="btn btn-secondary btn-lg">
+              <span>🚀</span>
+              <span>Uji Langsung ke AI</span>
+            </button>
           </div>
         </div>
 
-        <!-- View 2: Live AI Playground & Multi-Model Simulation -->
-        <div id="playgroundView" class="playground-container">
-          
-          <!-- AI Provider & Model Config Box -->
-          <div class="api-settings-box">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-              <span style="font-size:12px; font-weight:700; color:#38bdf8;">⚙️ Konfigurasi Model AI</span>
-              <span style="font-size:10px; color:var(--text-muted);">Tersimpan aman di browser</span>
+        <!-- Direct AI Testing Console (Collapsible) -->
+        <div id="aiTestConsole" class="card card-ai-test collapsed">
+          <div class="card-header cursor-pointer" id="aiTestToggleHeader">
+            <div class="header-left">
+              <span class="card-step-ai">AI</span>
+              <div>
+                <h2 class="card-title">Uji Simulasi Langsung (Claude / Gemini / AdaCode)</h2>
+                <p class="card-subtitle">Jalankan prompt yang sudah dibuat langsung ke model AI tanpa berpindah tab</p>
+              </div>
             </div>
+            <button id="btnCollapseAi" class="btn btn-icon" title="Tutup / Buka panel AI">▼</button>
+          </div>
 
-            <!-- Provider Selector -->
-            <div style="display:flex; gap:8px; margin-bottom:10px;">
-              <div style="flex:1;">
-                <label style="font-size:11px; color:var(--text-secondary); display:block; margin-bottom:4px;">Provider AI:</label>
-                <select id="aiProviderSelect" class="select-control" style="font-size:12px; padding:7px 10px;">
-                  <option value="gemini">🌟 Google Gemini</option>
-                  <option value="claude">🟣 Anthropic Claude</option>
-                  <option value="adacode">⚡ AdaCode / Custom Proxy</option>
+          <div class="ai-test-body" id="aiTestBody">
+            <div class="ai-config-grid">
+              <div class="form-group">
+                <label for="aiProviderSelect" class="input-label">Penyedia AI (Provider):</label>
+                <select id="aiProviderSelect" class="form-select">
+                  <option value="gemini" selected>Google Gemini (2.5 Flash / Pro, 1.5 Pro)</option>
+                  <option value="claude">Anthropic Claude (3.7 Sonnet, 3.5 Sonnet, Haiku)</option>
+                  <option value="adacode">AdaCode / OpenAI-Compatible (Local / Private API)</option>
                 </select>
               </div>
 
-              <div style="flex:1;">
-                <label style="font-size:11px; color:var(--text-secondary); display:block; margin-bottom:4px;">Pilihan Model:</label>
-                <select id="aiModelSelect" class="select-control" style="font-size:12px; padding:7px 10px;">
-                  <!-- Dynamically populated based on provider -->
-                </select>
+              <div class="form-group">
+                <label for="aiModelInput" class="input-label">Model Target:</label>
+                <input type="text" id="aiModelInput" class="form-input" value="gemini-2.5-flash" placeholder="Contoh: gemini-2.5-flash, claude-3-7-sonnet-latest, gpt-4o">
+              </div>
+
+              <div class="form-group full-width" id="customEndpointGroup" style="display:none;">
+                <label for="aiEndpointInput" class="input-label">Custom API Endpoint (AdaCode / Local / Proxy):</label>
+                <input type="text" id="aiEndpointInput" class="form-input" placeholder="https://api.openai.com/v1 atau http://localhost:11434/v1">
+              </div>
+
+              <div class="form-group full-width">
+                <label for="aiApiKeyInput" class="input-label">API Key / Session Token:</label>
+                <div class="input-password-wrapper">
+                  <input type="password" id="aiApiKeyInput" class="form-input" placeholder="Masukkan API Key (tersimpan aman hanya di browser lokal Anda)...">
+                  <button type="button" id="btnToggleKeyVis" class="btn-toggle-vis" title="Lihat / Sembunyikan Key">👁️</button>
+                </div>
+                <small class="key-hint">Key Anda 100% aman dan hanya tersimpan di localStorage browser Anda.</small>
               </div>
             </div>
 
-            <!-- Custom Endpoint URL for AdaCode / Custom Proxy -->
-            <div id="customEndpointRow" style="display:none; margin-bottom:10px;">
-              <label style="font-size:11px; color:var(--text-secondary); display:block; margin-bottom:4px;">Custom Base URL / Endpoint:</label>
-              <input type="text" id="customEndpointInput" class="form-input" style="font-size:12px; padding:7px 10px;" placeholder="https://api.adacode.com/v1 atau proxy Anda..." />
+            <div class="ai-run-row">
+              <button id="btnRunAiTest" class="btn btn-ai-run">
+                <span class="run-icon">⚡</span>
+                <span id="runAiText">Eksekusi Prompt ke AI</span>
+                <span id="aiRunSpinner" class="spinner hidden"></span>
+              </button>
             </div>
 
-            <!-- API Key / Session Token Row -->
-            <div>
-              <label style="font-size:11px; color:var(--text-secondary); display:block; margin-bottom:4px;" id="apiKeyLabel">API Key / Session Token:</label>
-              <div class="api-key-input-row">
-                <input type="password" id="apiKeyInput" class="form-input" style="font-size:12px; padding:7px 10px;" placeholder="Masukkan API Key / Session Token..." />
-                <button id="btnSaveApiKey" class="btn btn-secondary btn-sm">Simpan</button>
+            <!-- AI Response Box -->
+            <div id="aiResponseContainer" class="ai-response-container hidden">
+              <div class="response-header">
+                <span class="response-title">💬 Hasil Respon dari AI:</span>
+                <button id="btnCopyAiResponse" class="btn btn-chip" title="Salin jawaban AI">📋 Salin Jawaban</button>
               </div>
+              <div id="aiResponseContent" class="ai-response-content"></div>
             </div>
           </div>
-
-          <!-- Playground Action Controls -->
-          <div style="display:flex; gap:8px;">
-            <button id="btnRunSimulation" class="btn btn-secondary" style="flex:1;">
-              ⚡ Simulasi Lokal (Offline)
-            </button>
-            <button id="btnRunLiveApi" class="btn btn-primary" style="flex:1;">
-              🚀 Jalankan Live ke AI
-            </button>
-          </div>
-
-          <!-- Simulation Response Output Area -->
-          <div id="simulationOutput" class="simulation-response-area">
-            <div style="text-align:center; padding:40px 10px; color:var(--text-muted);">
-              <span style="font-size:32px; display:block; margin-bottom:8px;">💡</span>
-              Pilih provider (<strong>Google Gemini</strong>, <strong>Claude</strong>, atau <strong>AdaCode</strong>), masukkan API Key/Session Anda, lalu klik <strong>"Jalankan Live ke AI"</strong>. Atau gunakan <strong>"Simulasi Lokal"</strong> untuk mencoba secara instan!
-            </div>
-          </div>
-
         </div>
+      </section>
+    </main>
 
-      </div>
-    </section>
-
-  </main>
-
-  <!-- Toast Notification Container -->
-  <div id="toastContainer" class="toast-container"></div>
-
-  <!-- Modal Dialog Backdrop -->
-  <div id="modalBackdrop" class="modal-backdrop">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3 id="modalTitle">Informasi</h3>
-        <button id="btnModalClose" class="btn btn-secondary btn-sm">&times;</button>
-      </div>
-      <div id="modalBody" class="modal-body"></div>
-      <div class="modal-footer">
-        <button onclick="document.getElementById('modalBackdrop').classList.remove('active')" class="btn btn-primary">Tutup</button>
-      </div>
-    </div>
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
   </div>
 
-  <!-- Helper Scripts to switch sidebar tab -->
-  <script>
-    function switchSidebarTab(tab) {
-      const btnExperts = document.getElementById("tabNavExperts");
-      const btnTemplates = document.getElementById("tabNavTemplates");
-      const sectionExperts = document.getElementById("sidebarExpertsSection");
-      const sectionTemplates = document.getElementById("sidebarTemplatesSection");
-
-      if (tab === "experts") {
-        btnExperts.classList.add("active");
-        btnTemplates.classList.remove("active");
-        sectionExperts.style.display = "block";
-        sectionTemplates.style.display = "none";
-      } else {
-        btnTemplates.classList.add("active");
-        btnExperts.classList.remove("active");
-        sectionExperts.style.display = "none";
-        sectionTemplates.style.display = "block";
-      }
-    }
-  </script>
-
-  <!-- Application Modules -->
-  <script src="data/experts.js?v=7"></script>
-  <script src="data/frameworks.js?v=7"></script>
-  <script src="data/templates.js?v=7"></script>
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=10"></script>
 </body>
 </html>

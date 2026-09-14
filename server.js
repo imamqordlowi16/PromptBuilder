@@ -119,10 +119,109 @@ async function handleAiProxy(req, res) {
   });
 }
 
+// Helper: Handle Task Refinement Request
+async function handleTaskRefine(req, res) {
+  let body = "";
+  req.on("data", chunk => { body += chunk; });
+  req.on("end", async () => {
+    try {
+      const payload = JSON.parse(body || "{}");
+      const { task, role, provider, model, apiKey, customEndpoint } = payload;
+
+      if (!task || !task.trim()) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ error: "Teks task tidak boleh kosong." }));
+      }
+
+      // If no API key provided, let client handle local heuristic
+      if (!apiKey || !apiKey.trim()) {
+        res.writeHead(200, { "Content-Type": "application/json" });
+        return res.end(JSON.stringify({ refined: null, note: "No API key provided, use local heuristic" }));
+      }
+
+      const refinePrompt = `Kamu adalah Senior Prompt Engineer & Technical Specification Specialist.
+Tugasmu: Perbaiki dan susun ulang teks instruksi / requirement teknis berikut agar menjadi sangat rapi, sistematis, presisi, dan mudah dieksekusi oleh AI coding assistant.
+
+ATURAN PERBAIKAN:
+1. Perbaiki kalimat yang berantakan, typo, atau kalimat panjang yang berulang tanpa mengubah maksud teknis aslinya.
+2. Kelompokkan instruksi ke dalam poin-poin/sub-poin yang runtut dan terstruktur (misal: target fungsi, perubahan skema, filter data, dan pemetaan rujukan).
+3. Buang kata-kata berulang yang tidak perlu agar ringkas dan padat makna.
+4. JANGAN berikan teks pembuka ("Tentu, ini hasilnya...") atau penutup ("Semoga membantu...").
+5. JANGAN menambahkan aturan bahasa pemrograman lain yang tidak ada hubungannya dengan konteks tugas.
+6. Berikan HANYA teks requirement yang sudah diperbaiki dan terstruktur rapi.
+
+Teks instruksi asli:
+${task.trim()}`;
+
+      let refinedText = "";
+
+      if (provider === "claude") {
+        const claudeModel = model || "claude-3-7-sonnet-latest";
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "x-api-key": apiKey.trim(),
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json"
+          },
+          body: JSON.stringify({
+            model: claudeModel,
+            max_tokens: 2048,
+            messages: [{ role: "user", content: refinePrompt }]
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error?.message || `Claude Error (${response.status})`);
+        refinedText = data.content?.[0]?.text?.trim() || "";
+      } else if (provider === "adacode" || provider === "custom") {
+        let targetUrl = (customEndpoint || "https://api.openai.com/v1").trim().replace(/\/+$/, "");
+        if (!targetUrl.endsWith("/chat/completions")) targetUrl += "/chat/completions";
+        const response = await fetch(targetUrl, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${apiKey.trim()}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: model || "default",
+            messages: [{ role: "user", content: refinePrompt }]
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error?.message || `API Error (${response.status})`);
+        refinedText = data.choices?.[0]?.message?.content?.trim() || "";
+      } else {
+        const geminiModel = model || "gemini-2.5-flash";
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: refinePrompt }] }]
+          })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error?.message || `Gemini Error (${response.status})`);
+        refinedText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "";
+      }
+
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ refined: refinedText }));
+
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: err.message, refined: null }));
+    }
+  });
+}
+
 const server = http.createServer((req, res) => {
-  // Handle AI Proxy Route
+  // Handle AI Proxy Routes
   if (req.method === "POST" && req.url === "/api/generate") {
     return handleAiProxy(req, res);
+  }
+  if (req.method === "POST" && req.url === "/api/refine") {
+    return handleTaskRefine(req, res);
   }
 
   // Normalize URL and remove query strings
