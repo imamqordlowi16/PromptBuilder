@@ -1,15 +1,20 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PromptCraft AI - Role & Task Prompt Architect</title>
-  <meta name="description" content="Aplikasi pembuat prompt AI presisi berbasis Role dan Task dengan fitur perbaikan kalimat otomatis, anti-duplikasi, dan pengujian langsung ke Gemini, Claude, dan AdaCode.">
+  <meta name="description"
+    content="Aplikasi pembuat prompt AI presisi berbasis Role dan Task dengan fitur perbaikan kalimat otomatis, anti-duplikasi, dan pengujian langsung ke Gemini, Claude, dan AdaCode.">
   <link rel="stylesheet" href="style.css?v=10">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
 </head>
+
 <body>
   <div class="app-container">
     <!-- Header -->
@@ -21,7 +26,7 @@
           <p class="brand-tagline">Precision Role & Task Prompt Architect</p>
         </div>
       </div>
-      
+
       <div class="header-actions">
         <span class="mode-badge">⚡ Mode Praktis: Role & Task</span>
       </div>
@@ -46,7 +51,8 @@
           <div class="role-preset-row">
             <label for="rolePresetSelect" class="input-label">Pilih Preset Pakar:</label>
             <select id="rolePresetSelect" class="form-select">
-              <option value="fullstack_engineer" selected>👑 Master Polyglot Full-Stack Developer (Semua Bahasa)</option>
+              <option value="fullstack_engineer" selected>👑 Master Polyglot Full-Stack Developer (Semua Bahasa)
+              </option>
               <option value="blazor_dotnet">⚡ Senior C# / .NET & Blazor Architect</option>
               <option value="senior_architect">🏛️ Principal Systems & Software Architect</option>
               <option value="frontend_engineer">⚛️ Senior Frontend & UI/UX Specialist (React/Vue/Web)</option>
@@ -59,7 +65,8 @@
           </div>
 
           <div class="form-group">
-            <textarea id="roleInput" class="form-textarea role-textarea" rows="3" placeholder="Tuliskan peran dan keahlian spesifik pakar yang Anda inginkan..."></textarea>
+            <textarea id="roleInput" class="form-textarea role-textarea" rows="3"
+              placeholder="Tuliskan peran dan keahlian spesifik pakar yang Anda inginkan..."></textarea>
           </div>
         </div>
 
@@ -70,11 +77,13 @@
               <span class="card-step">2</span>
               <div>
                 <h2 class="card-title">Task (Tugas & Requirement Anda)</h2>
-                <p class="card-subtitle">Tuliskan instruksi tugas secara bebas. Sistem akan merapikannya secara otomatis!</p>
+                <p class="card-subtitle">Tuliskan instruksi tugas secara bebas. Sistem akan merapikannya secara
+                  otomatis!</p>
               </div>
             </div>
             <div class="header-tools">
-              <button id="btnSampleBlazor" class="btn btn-chip" title="Gunakan contoh instruksi Blazor ETL & Dynamic Grid">
+              <button id="btnSampleBlazor" class="btn btn-chip"
+                title="Gunakan contoh instruksi Blazor ETL & Dynamic Grid" hidden>
                 📄 Contoh Blazor ETL
               </button>
               <button id="btnClearTask" class="btn btn-chip btn-chip-danger" title="Bersihkan kotak input">
@@ -100,13 +109,16 @@ Contoh:
                 <span id="attCountBadge" class="badge badge-sm badge-att hidden">0 Berkas</span>
               </div>
               <div class="att-header-actions">
-                <button type="button" id="btnBrowseFiles" class="btn btn-xs btn-outline" title="Pilih satu atau beberapa berkas dari komputer">
+                <button type="button" id="btnBrowseFiles" class="btn btn-xs btn-outline"
+                  title="Pilih satu atau beberapa berkas dari komputer">
                   📄 Tambah Berkas
                 </button>
-                <button type="button" id="btnBrowseFolder" class="btn btn-xs btn-outline" title="Pilih seluruh berkas dalam satu folder">
+                <button type="button" id="btnBrowseFolder" class="btn btn-xs btn-outline"
+                  title="Pilih seluruh berkas dalam satu folder">
                   📁 Pilih Folder
                 </button>
-                <button type="button" id="btnClearAttachments" class="btn btn-xs btn-ghost btn-danger-text hidden" title="Hapus semua lampiran">
+                <button type="button" id="btnClearAttachments" class="btn btn-xs btn-ghost btn-danger-text hidden"
+                  title="Hapus semua lampiran">
                   🗑️ Hapus Semua
                 </button>
               </div>
@@ -132,7 +144,8 @@ Contoh:
                       📁 Pilih 1 Folder (Baca Semua Isi)
                     </button>
                   </div>
-                  <span class="dropzone-sub">Bisa pilih berkas berkali-kali (otomatis digabung). Mendukung <code>Ctrl + V</code> untuk paste teks/kode/file.</span>
+                  <span class="dropzone-sub">Bisa pilih berkas berkali-kali (otomatis digabung). Mendukung
+                    <code>Ctrl + V</code> untuk paste teks/kode/file.</span>
                 </div>
               </div>
             </div>
@@ -143,13 +156,16 @@ Contoh:
 
           <!-- Action Bar Auto-Perbaiki -->
           <div class="refine-action-bar">
-            <button id="btnRefineTask" class="btn btn-refine" title="Perbaiki dan rapikan susunan kalimat tugas yang berantakan">
+            <button id="btnRefineTask" class="btn btn-refine"
+              title="Perbaiki dan rapikan susunan kalimat tugas yang berantakan">
               <span class="refine-icon">✨</span>
               <span class="refine-text" id="refineText">Perbaiki & Rapikan Kalimat Task (AI Gemini)</span>
               <span id="refineSpinner" class="spinner hidden"></span>
             </button>
             <p class="refine-hint">
-              💡 <strong>Didukung Gemini 3.6 Flash:</strong> Kalimat berantakan, typo, atau kalimat panjang yang campur aduk akan otomatis distrukturkan menjadi requirement sistematis dan presisi menggunakan API Key Gemini Anda.
+              💡 <strong>Didukung Gemini 3.6 Flash:</strong> Kalimat berantakan, typo, atau kalimat panjang yang campur
+              aduk akan otomatis distrukturkan menjadi requirement sistematis dan presisi menggunakan API Key Gemini
+              Anda.
             </p>
           </div>
         </div>
@@ -168,8 +184,10 @@ Contoh:
               </div>
             </div>
             <div class="stats-badge-group">
-              <span id="statRefinedBadge" class="badge badge-refined hidden" title="Hasil Master Prompt ini telah disempurnakan dan dirapikan otomatis">✨ Dirapikan</span>
-              <span id="statScore" class="badge badge-score" title="Tingkat presisi dan kelengkapan prompt">🎯 Presisi: 0%</span>
+              <span id="statRefinedBadge" class="badge badge-refined hidden"
+                title="Hasil Master Prompt ini telah disempurnakan dan dirapikan otomatis">✨ Dirapikan</span>
+              <span id="statScore" class="badge badge-score" title="Tingkat presisi dan kelengkapan prompt">🎯 Presisi:
+                0%</span>
               <span id="statChars" class="badge">0 Karakter</span>
               <span id="statWords" class="badge">0 Kata</span>
               <span id="statTokens" class="badge badge-accent">~0 Token</span>
@@ -207,4 +225,5 @@ Senior Polyglot Full-Stack Engineer ahli dalam SEMUA bahasa pemrograman utama...
 
   <script src="app.js?v=17"></script>
 </body>
+
 </html>
