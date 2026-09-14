@@ -254,6 +254,11 @@
               <span>${field.label}</span>
               ${field.required ? '<span class="badge-required">Wajib</span>' : ''}
             </label>
+            ${isTextarea ? `
+              <button type="button" class="btn-refine-field" data-refine-key="${field.key}" title="Analisis dan perbaiki instruksi tugas ini secara otomatis">
+                <span>✨ Auto-Perbaiki & Sempurnakan</span>
+              </button>
+            ` : ''}
           </div>
           ${isTextarea ? `
             <textarea 
@@ -274,6 +279,14 @@
       `;
     }).join("");
 
+    // Bind refine buttons
+    el.formFieldsContainer.querySelectorAll(".btn-refine-field").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const key = btn.getAttribute("data-refine-key");
+        refineField(key);
+      });
+    });
+
     // Bind input events
     el.formFieldsContainer.querySelectorAll("input, textarea").forEach(input => {
       input.addEventListener("input", (e) => {
@@ -283,6 +296,96 @@
         updatePromptOutput();
       });
     });
+  }
+
+  // Auto-refine and fix a specific field's draft instructions
+  async function refineField(key) {
+    const currentVal = (state.formData[key] || "").trim();
+    if (!currentVal) {
+      showToast("Tulis draf instruksi tugas terlebih dahulu sebelum diperbaiki!", "error");
+      return;
+    }
+
+    const btn = document.querySelector(`[data-refine-key="${key}"]`);
+    if (btn) {
+      btn.innerHTML = `<span class="pulse-indicator"></span> Memperbaiki...`;
+      btn.disabled = true;
+    }
+
+    const persona = getCurrentPersona();
+    const promptInstructions = `Kamu adalah Senior Prompt Engineer & Code Architect.
+Berikut adalah draf instruksi dari pengguna:
+"${currentVal}"
+
+TUGAS KAMU:
+Analisis dan perbaiki draf instruksi di atas agar:
+1. Menghilangkan ambiguitas atau kalimat rancu.
+2. Memecah tugas menjadi langkah-langkah terstruktur dan bernomor jika mencakup banyak instruksi.
+3. Menambahkan kondisi batas (boundary conditions) atau batasan logis yang diperlukan agar model AI tidak merusak bagian lain.
+4. TETAP MEMPERTAHANKAN 100% inti maksud dan nama variabel/file asli pengguna.
+
+Tuliskan HANYA teks instruksi hasil perbaikan secara langsung tanpa salam pembuka, tanpa basa-basi, dan tanpa tanda kutip pembuka/penutup.`;
+
+    try {
+      const provider = state.aiProvider;
+      const currentKey = state.apiKeys[provider] || el.apiKeyInput.value.trim();
+
+      // If user has AI key configured, use live AI model for highest quality polishing!
+      if (currentKey) {
+        const response = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: provider,
+            model: el.aiModelSelect.value || state.aiModel,
+            apiKey: currentKey,
+            customEndpoint: el.customEndpointInput ? el.customEndpointInput.value.trim() : "",
+            prompt: promptInstructions
+          })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.text) {
+          const polished = data.text.trim();
+          state.formData[key] = polished;
+          const targetInput = document.getElementById(`field_${key}`);
+          if (targetInput) targetInput.value = polished;
+          detectVariables();
+          updatePromptOutput();
+          showToast(`✨ Tugas berhasil diperbaiki oleh ${provider.toUpperCase()}!`);
+          return;
+        }
+      }
+
+      // Offline / Local intelligent heuristic refiner fallback
+      let polished = currentVal;
+      // Split sentences if long paragraph
+      if (polished.includes(".") && !polished.includes("1.") && !polished.includes("- ")) {
+        const parts = polished.split(/(?<=[.!?])\s+/).filter(p => p.trim().length > 8);
+        if (parts.length > 1) {
+          polished = `Lakukan eksekusi tugas dengan requirement terstruktur berikut:\n` +
+            parts.map((p, idx) => `${idx + 1}. ${p.trim()}`).join("\n") +
+            `\n\nCatatan Penting:\n- Pastikan implementasi terisolasi dan tidak merusak fungsi atau bagian lain.\n- Lakukan validasi data masukan dan terapkan error handling yang aman.`;
+        }
+      } else if (!polished.toLowerCase().includes("catatan penting") && !polished.toLowerCase().includes("batasan")) {
+        polished = `${polished}\n\nCatatan Penting & Ketentuan:\n- Pastikan seluruh perubahan terisolasi dan tidak menyebabkan efek samping (side-effects).\n- Wajib menerapkan validasi dan error handling menyeluruh.`;
+      }
+
+      state.formData[key] = polished;
+      const targetInput = document.getElementById(`field_${key}`);
+      if (targetInput) targetInput.value = polished;
+      detectVariables();
+      updatePromptOutput();
+      showToast("✨ Format dan struktur tugas berhasil disempurnakan!");
+
+    } catch (err) {
+      showToast("Gagal memperbaiki via AI, menggunakan perbaikan lokal", "error");
+    } finally {
+      if (btn) {
+        btn.innerHTML = `<span>✨ Auto-Perbaiki & Sempurnakan</span>`;
+        btn.disabled = false;
+      }
+    }
   }
 
   // Detect {{variable}} placeholders in inputs

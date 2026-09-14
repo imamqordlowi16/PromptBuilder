@@ -545,6 +545,30 @@ code, pre {
   justify-content: space-between;
 }
 
+.btn-refine-field {
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  color: #c4b5fd;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all var(--transition-fast);
+}
+
+.btn-refine-field:hover {
+  background: rgba(139, 92, 246, 0.35);
+  border-color: var(--accent-primary);
+  color: #ffffff;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.45);
+  transform: translateY(-1px);
+}
+
 .form-label {
   font-size: 12px;
   font-weight: 600;
