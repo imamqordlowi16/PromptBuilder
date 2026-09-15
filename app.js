@@ -60,6 +60,7 @@
     role: ROLE_PRESETS.fullstack_engineer,
     rawTask: "",
     refinedTask: null,
+    useRefinedTask: true, // when true, use refinedTask if available; when false, use rawTask
     attachments: [], // Array of { id, name, sizeFormatted, type, ext, content, isBinary }
     previousPromptContext: null, // Context/assumptions saved from previous session
     continuationStep: 1 // Current continuation step counter
@@ -77,6 +78,9 @@
     btnRefineTask: document.getElementById("btnRefineTask"),
     refineText: document.getElementById("refineText"),
     refineSpinner: document.getElementById("refineSpinner"),
+    btnToggleRefineOutput: document.getElementById("btnToggleRefineOutput"),
+    toggleRefineIcon: document.getElementById("toggleRefineIcon"),
+    toggleRefineText: document.getElementById("toggleRefineText"),
     promptDisplay: document.getElementById("promptDisplay"),
     statRefinedBadge: document.getElementById("statRefinedBadge"),
     statScore: document.getElementById("statScore"),
@@ -152,7 +156,9 @@
     el.taskInput.addEventListener("input", (e) => {
       state.rawTask = e.target.value;
       state.refinedTask = null;
+      state.useRefinedTask = true;
       updatePromptOutput();
+      updateRefineToggleUI();
     });
 
     // Preset Sample: Blazor & ETL
@@ -202,9 +208,26 @@
       el.btnClearTask.addEventListener("click", () => {
         state.rawTask = "";
         state.refinedTask = null;
+        state.useRefinedTask = true;
         el.taskInput.value = "";
         updatePromptOutput();
+        updateRefineToggleUI();
         showToast("Kotak tugas dibersihkan.");
+      });
+    }
+
+    // Toggle Refined vs Raw Task in Output
+    if (el.btnToggleRefineOutput) {
+      el.btnToggleRefineOutput.addEventListener("click", () => {
+        if (!state.refinedTask) return;
+        state.useRefinedTask = !state.useRefinedTask;
+        updatePromptOutput();
+        updateRefineToggleUI();
+        if (state.useRefinedTask) {
+          showToast("✨ Master Prompt kini menggunakan hasil perbaikan AI.", "info");
+        } else {
+          showToast("↩️ Master Prompt kini menggunakan teks asli inputan Anda.", "info");
+        }
       });
     }
 
@@ -721,7 +744,7 @@
   // Compile Master Prompt (Clean, Strict & Production Ready with Attachments)
   function compilePrompt() {
     const roleText = (state.role && state.role.trim()) ? state.role.trim() : "Senior Software Engineer";
-    const taskContent = state.refinedTask || state.rawTask;
+    const taskContent = (state.useRefinedTask && state.refinedTask) ? state.refinedTask : state.rawTask;
     const taskText = (taskContent && taskContent.trim())
       ? taskContent.trim()
       : "(Tuliskan rincian tugas Anda pada kolom input di sebelah kiri...)";
@@ -846,7 +869,7 @@ ${guidelines}`;
     el.statTokens.textContent = `~${approxTokens.toLocaleString()} Token`;
 
     // Dynamic Precision Rate Badge
-    const effectiveTask = state.refinedTask || state.rawTask;
+    const effectiveTask = (state.useRefinedTask && state.refinedTask) ? state.refinedTask : state.rawTask;
     const score = calculatePromptPrecision(state.role, effectiveTask);
 
     if (el.statScore) {
@@ -866,7 +889,7 @@ ${guidelines}`;
 
     // Toggle "Dirapikan" Badge
     if (el.statRefinedBadge) {
-      if (state.refinedTask) {
+      if (state.refinedTask && state.useRefinedTask) {
         el.statRefinedBadge.classList.remove("hidden");
       } else {
         el.statRefinedBadge.classList.add("hidden");
@@ -950,6 +973,9 @@ ${guidelines}`;
   function handleResetContinuation() {
     state.previousPromptContext = null;
     state.continuationStep = 1;
+    state.refinedTask = null;
+    state.useRefinedTask = true;
+    updateRefineToggleUI();
 
     if (el.continuationBanner) el.continuationBanner.classList.add("hidden");
     if (el.btnContinuePrompting) el.btnContinuePrompting.classList.add("hidden");
@@ -965,6 +991,8 @@ ${guidelines}`;
     state.continuationStep = 1;
     state.rawTask = "";
     state.refinedTask = null;
+    state.useRefinedTask = true;
+    updateRefineToggleUI();
 
     el.taskInput.value = "";
     el.taskInput.placeholder = `Tempel atau ketik requirement tugas Anda di sini...
@@ -1026,14 +1054,15 @@ Contoh:
       if (res.ok && data.refined && data.refined.trim()) {
         const revised = data.refined.trim();
         state.refinedTask = revised;
-        state.rawTask = revised;
-        el.taskInput.value = revised;
+        state.useRefinedTask = true;
+        // Do NOT overwrite el.taskInput.value with revised text so user's raw draft is preserved
         updatePromptOutput();
+        updateRefineToggleUI();
 
         if (el.revisionInput) el.revisionInput.value = "";
         if (el.revisionBox) el.revisionBox.classList.add("hidden");
 
-        showToast("✨ Revisi berhasil diterapkan oleh AI sesuai catatan Anda!", "success");
+        showToast("✨ Revisi diterapkan pada Master Prompt! Teks asli Anda tetap aman.", "success");
         showPromptEvaluation();
       } else {
         showToast("Gagal memproses revisi: " + (data.error || "Respon AI kosong"), "error");
@@ -1166,20 +1195,21 @@ Contoh:
         refined = cleanAndStructureTaskLocally(rawText);
       }
 
-      // Update both task input textarea and master prompt state so user can see & edit
+      // Update refined state without overwriting the user's raw input in taskInput
       state.refinedTask = refined;
-      el.taskInput.value = refined;
-      state.rawTask = refined;
+      state.useRefinedTask = true;
+      // Do NOT overwrite el.taskInput.value - keep user's original draft completely intact!
       updatePromptOutput();
+      updateRefineToggleUI();
 
       if (usedAi) {
         if (hasAttachments) {
-          showToast(`✨ Sukses! Task dipahami & disusun berdasarkan alur ${state.attachments.length} berkas!`, "success");
+          showToast(`✨ Sukses! Master Prompt dirapikan berdasarkan ${state.attachments.length} berkas (Teks asli tetap aman)!`, "success");
         } else {
-          showToast("✨ Berhasil dirapikan & distrukturkan oleh Gemini 3.6 Flash!", "success");
+          showToast("✨ Master Prompt berhasil dirapikan! Teks asli Anda tetap aman di kolom input.", "success");
         }
       } else {
-        showToast("✨ Hasil Master Prompt dirapikan secara heuristik.", "info");
+        showToast("✨ Master Prompt dirapikan secara heuristik (Teks asli tetap aman).", "info");
       }
 
       // Tampilkan notifikasi / dialog evaluasi apakah hasil prompt sudah sesuai
@@ -1190,6 +1220,25 @@ Contoh:
       el.btnRefineTask.disabled = false;
       el.refineSpinner.classList.add("hidden");
       if (el.refineText) el.refineText.textContent = "Perbaiki & Rapikan Kalimat Task (AI Gemini)";
+    }
+  }
+
+  // Update UI for Toggle Refined vs Raw in Output
+  function updateRefineToggleUI() {
+    if (!el.btnToggleRefineOutput) return;
+    if (state.refinedTask) {
+      el.btnToggleRefineOutput.classList.remove("hidden");
+      if (state.useRefinedTask) {
+        if (el.toggleRefineIcon) el.toggleRefineIcon.textContent = "↩️";
+        if (el.toggleRefineText) el.toggleRefineText.textContent = "Gunakan Teks Asli di Output";
+        el.btnToggleRefineOutput.title = "Beralih untuk menampilkan teks asli Anda pada Master Prompt di sebelah kanan";
+      } else {
+        if (el.toggleRefineIcon) el.toggleRefineIcon.textContent = "✨";
+        if (el.toggleRefineText) el.toggleRefineText.textContent = "Gunakan Hasil Rapi di Output";
+        el.btnToggleRefineOutput.title = "Beralih untuk menampilkan hasil perbaikan AI pada Master Prompt di sebelah kanan";
+      }
+    } else {
+      el.btnToggleRefineOutput.classList.add("hidden");
     }
   }
 

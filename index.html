@@ -193,16 +193,21 @@ Contoh:
 
           <!-- Action Bar Auto-Perbaiki -->
           <div class="refine-action-bar">
-            <button id="btnRefineTask" class="btn btn-refine"
-              title="Perbaiki dan rapikan susunan kalimat tugas yang berantakan">
-              <span class="refine-icon">✨</span>
-              <span class="refine-text" id="refineText">Perbaiki & Rapikan Kalimat Task (AI Gemini)</span>
-              <span id="refineSpinner" class="spinner hidden"></span>
-            </button>
+            <div class="refine-btn-row">
+              <button id="btnRefineTask" class="btn btn-refine"
+                title="Perbaiki dan rapikan susunan kalimat tugas yang berantakan">
+                <span class="refine-icon">✨</span>
+                <span class="refine-text" id="refineText">Perbaiki & Rapikan Kalimat Task (AI Gemini)</span>
+                <span id="refineSpinner" class="spinner hidden"></span>
+              </button>
+              <button type="button" id="btnToggleRefineOutput" class="btn btn-toggle-refine hidden"
+                title="Beralih antara teks asli inputan Anda dan hasil rapian AI di Master Prompt">
+                <span id="toggleRefineIcon">↩️</span>
+                <span id="toggleRefineText">Gunakan Teks Asli di Output</span>
+              </button>
+            </div>
             <p class="refine-hint">
-              💡 <strong>Didukung Gemini 3.6 Flash:</strong> Kalimat berantakan, typo, atau kalimat panjang yang campur
-              aduk akan otomatis distrukturkan menjadi requirement sistematis dan presisi menggunakan API Key Gemini
-              Anda.
+              💡 <strong>Didukung Gemini 3.6 Flash:</strong> Teks tugas Anda akan distrukturkan rapi pada <em>Hasil Master Prompt</em> di kanan. <strong>Teks asli di kotak input ini tetap utuh & tidak akan ditimpa!</strong>
             </p>
           </div>
         </div>
@@ -291,7 +296,7 @@ Senior Polyglot Full-Stack Engineer ahli dalam SEMUA bahasa pemrograman utama...
     <div id="toastContainer" class="toast-container"></div>
   </div>
 
-  <script src="app.js?v=22"></script>
+  <script src="app.js?v=23"></script>
 </body>
 
 </html>
