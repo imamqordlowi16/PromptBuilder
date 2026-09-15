@@ -53,6 +53,9 @@
             <select id="rolePresetSelect" class="form-select">
               <option value="fullstack_engineer" selected>👑 Master Polyglot Full-Stack Developer (Semua Bahasa)
               </option>
+              <option value="prompt_engineer">🎯 Lead AI Prompt Engineer & LLM Architect</option>
+              <option value="ai_video_director">🎬 AI Video Director & Generative Cinema (Sora, Runway, Kling)</option>
+              <option value="ai_multimodal_artist">🎨 Multimodal AI Visual & Image-to-Video Director (Midjourney, Flux)</option>
               <option value="blazor_dotnet">⚡ Senior C# / .NET & Blazor Architect</option>
               <option value="senior_architect">🏛️ Principal Systems & Software Architect</option>
               <option value="frontend_engineer">⚛️ Senior Frontend & UI/UX Specialist (React/Vue/Web)</option>
@@ -82,10 +85,14 @@
               </div>
             </div>
             <div class="header-tools">
-              <!-- <button id="btnSampleBlazor" class="btn btn-chip"
-                title="Gunakan contoh instruksi Blazor ETL & Dynamic Grid" hidden>
-                📄 Contoh Blazor ETL
-              </button> -->
+              <button type="button" id="btnSampleVideo" class="btn btn-chip"
+                title="Muat contoh prompt AI Video Sinematik (Sora, Runway, Kling)">
+                🎬 Contoh Video AI
+              </button>
+              <button type="button" id="btnSamplePromptEng" class="btn btn-chip"
+                title="Muat contoh arsitektur Master System Prompt Engineering">
+                🎯 Contoh Prompt Eng
+              </button>
               <button id="btnClearTask" class="btn btn-chip btn-chip-danger" title="Bersihkan kotak input">
                 🗑️ Bersihkan
               </button>
@@ -284,7 +291,7 @@ Senior Polyglot Full-Stack Engineer ahli dalam SEMUA bahasa pemrograman utama...
     <div id="toastContainer" class="toast-container"></div>
   </div>
 
-  <script src="app.js?v=21"></script>
+  <script src="app.js?v=22"></script>
 </body>
 
 </html>

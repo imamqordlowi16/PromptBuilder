@@ -5,6 +5,9 @@
   // Role Presets Database
   const ROLE_PRESETS = {
     fullstack_engineer: "Senior Polyglot Full-Stack Engineer ahli dalam SEMUA bahasa pemrograman utama (JavaScript/TypeScript, Python, Golang, Rust, Java/Kotlin, C#/.NET, C/C++, PHP, Swift, Dart/Flutter, Ruby, SQL, Shell/Bash) dan ekosistem framework modern.",
+    prompt_engineer: "Lead AI Prompt Engineer & LLM Interaction Architect spesialis dalam perancangan prompt tingkat lanjut, perumusan System Instructions, framework terstruktur (CO-STAR, Few-Shot, Chain-of-Thought), eliminasi halusinasi, dan optimasi output terstruktur (JSON/Markdown/Code).",
+    ai_video_director: "AI Video Director & Generative Cinema Specialist ahli dalam perancangan prompt video AI (Sora, Runway Gen-3, Kling AI, Luma Dream Machine, Pika Labs), sinematografi generatif (camera motion, lens focal length, lighting, visual styling), konsistensi karakter & subjek, serta storyboard adegan berantai.",
+    ai_multimodal_artist: "Multimodal AI Visual & Image-to-Video Director ahli dalam pembuatan visual keyframe estetika tinggi (Midjourney v6, Flux, DALL-E 3), perumusan prompt sinematik fotorealistik, color grading, dan penyiapan aset gambar referensi untuk model Text-to-Video (T2V) & Image-to-Video (I2V).",
     blazor_dotnet: "Senior .NET & Blazor Architect ahli dalam C# 12, ASP.NET Core, Blazor WebAssembly/Server, Entity Framework Core, SQL Server, dan integrasi Dynamic Data Grid / ETL pipelines.",
     senior_architect: "Principal Systems & Software Architect dengan pengalaman 15+ tahun merancang arsitektur perangkat lunak terdistribusi, Clean Architecture, high-throughput, low-latency, dan fault-tolerant.",
     frontend_engineer: "Senior Frontend Architect & UI/UX Specialist ahli dalam modern JavaScript/TypeScript, React 19, Next.js, Vue 3, state management, CSS modern, dan performa web.",
@@ -31,7 +34,25 @@
   * Buatkan filter untuk dilempar ke skema etl dari Datetime Picker Posisi Laporan dan Kelompok Bank
   * Tampilan grid disamakan dengan tabel excel bagian bawah pada file excel rujukan tersebut
   * Khusus kolom "Bank" (karena tidak ada di etl), samakan logic pengambilannya dari PUAB.razor. Kolom lain tetap ambil dari etl.
-- Pastikan filter pada form bekerja reaktif, terkirim ke dalam etl, dan data tertampil sesuai hasil etl.`
+- Pastikan filter pada form bekerja reaktif, terkirim ke dalam etl, dan data tertampil sesuai hasil etl.`,
+
+    ai_video: `Rancang Master Video Prompt sinematik fotorealistik untuk adegan film Sci-Fi Cyberpunk (Target: OpenAI Sora / Runway Gen-3 / Kling AI):
+- Subjek Utama: Seorang detektif wanita berambut perak dengan trench coat hitam basah, berjalan percaya diri menembus kerumunan pasar malam kota neo-Tokyo yang diguyur hujan gerimis lebat.
+- Detail Visual & Tekstur: Jaket kulit hitam basah memantulkan kilauan lampu neon holografik (warna cyan, amber, dan magenta), tetesan air hujan berkilau mengalir di pipinya, mata kanan memiliki implan lensa cybernetic bercahaya biru redup.
+- Bahasa Sinematografi & Kamera:
+  * Buka dengan wide shot dari ketinggian (crane down) menyusuri kabel-kabel neon dan papan reklame holografik melayang.
+  * Transisi halus ke low-angle tracking shot mengikuti langkah kakinya yang memercikkan genangan air di aspal basah.
+  * Akhiri dengan slow dolly zoom (Vertigo effect) ke arah sorot matanya yang tajam saat dia berhenti dan menatap langsung ke arah kamera.
+- Pencahayaan & Atmosfer: Volumetric steam mengepul dari ventilasi jalan bawah tanah, pencahayaan chiaroscuro dramatis, bokeh oval anamorphic lembut, lensa 35mm T1.5 cine lens, 24fps motion blur alami.
+- Negative Constraints: Tidak ada distorsi fisik/morfologi tangan, wajah tidak pecah, tidak ada glitch antar-frame, tidak ada teks watermark/logo mengambang, pergerakan kamera stabil tanpa patah-patah.`,
+
+    prompt_engineering: `Rancang Master System Instructions tingkat enterprise untuk AI Customer Experience & Technical Triage Agent:
+- Peran Agen: Senior Customer Success & Tier-2 Technical Support Specialist pada platform Cloud DevOps & SaaS Infrastructure.
+- Arsitektur Prompt:
+  1. Identitas, Gaya Bahasa & Boundaries: Mampu melayani dalam Bahasa Indonesia dan Bahasa Inggris secara profesional, ramah, solutif, dilarang berasumsi atau berhalusinasi jika data log/error tidak lengkap.
+  2. Alur Triage Masalah: Identifikasi urgensi tiket (P1 Critical vs P4 Low), ekstrak error stack trace dan timestamp, periksa riwayat status layanan terkait.
+  3. Format Output Terstruktur: Selalu berikan respon terbagi dalam 3 seksi Markdown: (a) Ringkasan Cepat Diagnosis Masalah, (b) Langkah Mitigasi Langsung (Step-by-step Actionable Solutions), (c) Estimasi Waktu Tindak Lanjut (SLA & Next Steps).
+  4. Guardrails & Keamanan: Jika pengguna menanyakan kredensial rahasia, API key, atau data finansial internal, tolak dengan sopan sesuai protokol kepatuhan SOC2 dan ISO 27001.`
   };
 
   // State Management
@@ -50,6 +71,8 @@
     roleInput: document.getElementById("roleInput"),
     taskInput: document.getElementById("taskInput"),
     btnSampleBlazor: document.getElementById("btnSampleBlazor"),
+    btnSampleVideo: document.getElementById("btnSampleVideo"),
+    btnSamplePromptEng: document.getElementById("btnSamplePromptEng"),
     btnClearTask: document.getElementById("btnClearTask"),
     btnRefineTask: document.getElementById("btnRefineTask"),
     refineText: document.getElementById("refineText"),
@@ -143,6 +166,34 @@
         el.taskInput.value = state.rawTask;
         updatePromptOutput();
         showToast("Contoh Blazor & ETL dimuat!");
+      });
+    }
+
+    // Preset Sample: AI Video Generator (Sora, Runway, Kling)
+    if (el.btnSampleVideo) {
+      el.btnSampleVideo.addEventListener("click", () => {
+        el.rolePresetSelect.value = "ai_video_director";
+        state.role = ROLE_PRESETS.ai_video_director;
+        el.roleInput.value = state.role;
+        state.rawTask = SAMPLE_TASKS.ai_video;
+        state.refinedTask = null;
+        el.taskInput.value = state.rawTask;
+        updatePromptOutput();
+        showToast("🎬 Contoh prompt AI Video Sinematik dimuat!");
+      });
+    }
+
+    // Preset Sample: Master Prompt Engineering
+    if (el.btnSamplePromptEng) {
+      el.btnSamplePromptEng.addEventListener("click", () => {
+        el.rolePresetSelect.value = "prompt_engineer";
+        state.role = ROLE_PRESETS.prompt_engineer;
+        el.roleInput.value = state.role;
+        state.rawTask = SAMPLE_TASKS.prompt_engineering;
+        state.refinedTask = null;
+        el.taskInput.value = state.rawTask;
+        updatePromptOutput();
+        showToast("🎯 Contoh Master Prompt Engineering dimuat!");
       });
     }
 
@@ -700,17 +751,44 @@ ${state.previousPromptContext}
 Instruksi TASK di bawah ini merupakan KELANJUTAN TAHAP KE-${state.continuationStep} yang wajib dibangun secara konsisten di atas fondasi implementasi sebelumnya.\n\n`;
     }
 
+    // Determine adaptive implementation / creative guidelines based on selected role
+    let guidelines = "";
+    const lowerRole = (state.role || "").toLowerCase();
+
+    if (lowerRole.includes("video") || lowerRole.includes("cinema") || lowerRole.includes("sora") || lowerRole.includes("runway") || lowerRole.includes("kling")) {
+      guidelines = `### KETENTUAN SINEMATOGRAFI & PROMPT VIDEO GENERATIVE
+- Sinematografi presisi: Tentukan pergerakan kamera (pan, tilt, crane, orbit, dolly in/out, FPV drone), shot size (close-up, medium, wide), dan lensa (focal length 35mm/85mm, depth of field, anamorphic bokeh).
+- Pencahayaan & atmosfer: Rincikan sumber cahaya (volumetric lighting, golden hour, chiaroscuro, neon cyberpunk), palet warna, dan cuaca/mood lingkungan.
+- Konsistensi subjek & karakter: Pertahankan ciri khas wajah, postur tubuh, pakaian, dan proporsi subjek agar tidak mengalami morfologi aneh atau glitch.
+- Koherensi fisik & gerakan: Pastikan dinamika kecepatan gerak alami (motion dynamics), minim distorsi antar-frame, dan aspek rasio sinematik (16:9 atau 9:16).
+- Format keluaran: Sajikan Master Prompt siap salin untuk Text-to-Video / Image-to-Video, variasi pergerakan kamera alternatif, serta daftar Negative Prompts esensial.`;
+    } else if (lowerRole.includes("prompt engineer") || lowerRole.includes("llm interaction") || lowerRole.includes("rekayasa prompt") || lowerRole.includes("system instructions")) {
+      guidelines = `### KETENTUAN REKAYASA PROMPT (PROMPT ENGINEERING STANDARDS)
+- Arsitektur modular: Susun prompt dengan struktur jelas (Role, Context, Instruction, Constraints, Few-shot Examples, Output Format).
+- Eliminasi halusinasi: Terapkan pembatasan ketat (negative constraints), grounding instruksi berbasis fakta, dan penalaran bertahap (Chain-of-Thought).
+- Optimasi token & format: Buat kalimat instruksi padat, terarah, dan tentukan skema keluaran deterministik (Markdown rapi / JSON Schema valid).
+- Format keluaran: Sajikan System Prompt lengkap siap pakai, rekomendasi parameter model (temperature, top_p), dan skenario pengujian edge cases.`;
+    } else if (lowerRole.includes("multimodal") || lowerRole.includes("midjourney") || lowerRole.includes("flux") || lowerRole.includes("dall-e")) {
+      guidelines = `### KETENTUAN VISUAL ART & IMAGE-TO-VIDEO BENCHMARKING
+- Komposisi visual: Terapkan aturan komposisi visual kuat (Rule of Thirds, Leading lines, Golden Ratio, framing simetris).
+- Detail estetika & rendering: Deskripsikan tekstur material, resolusi sinematik, color grading, dan render engine (Octane render, photorealistic 8k, Unreal Engine 5 aesthetic).
+- Parameter teknis: Sertakan rasio aspek (--ar 16:9 / 9:16), tingkat stylize, dan prompt penegas detail pencahayaan.
+- Kesiapan Image-to-Video (I2V): Pastikan subjek memiliki siluet jelas dan ruang gerak yang ideal untuk dianimasikan oleh AI video generator.`;
+    } else {
+      guidelines = `### KETENTUAN IMPLEMENTASI
+- Fokus terisolasi: Ubah HANYA bagian/file/fungsi yang dispesifikasikan (hindari efek samping ke bagian lain).
+- Error handling & validasi: Terapkan penanganan data, null checking, dan logging/error handling menyeluruh.
+- Standar penamaan: Pertahankan konsistensi penamaan variabel, skema data, method, dan struktur kode eksisting.
+- Format jawaban: Langsung sajikan kode/solusi inti lengkap dengan penjelasan perubahan yang jelas dan siap dieksekusi.`;
+    }
+
     return `### ROLE
 ${roleText}
 
 ${priorContextSection}### TASK
 ${taskText}${attachmentsSection}
 
-### KETENTUAN IMPLEMENTASI
-- Fokus terisolasi: Ubah HANYA bagian/file/fungsi yang dispesifikasikan (hindari efek samping ke bagian lain).
-- Error handling & validasi: Terapkan penanganan data, null checking, dan logging/error handling menyeluruh.
-- Standar penamaan: Pertahankan konsistensi penamaan variabel, skema data, method, dan struktur kode eksisting.
-- Format jawaban: Langsung sajikan kode/solusi inti lengkap dengan penjelasan perubahan yang jelas dan siap dieksekusi.`;
+${guidelines}`;
   }
 
   // Calculate Prompt Precision Rate
@@ -735,8 +813,12 @@ ${taskText}${attachmentsSection}
     if (/(\.razor|\.cs|\.ts|\.js|\.py|\.go|\.java|\.php|\.sql|\.json|\.html)/i.test(cleanTask)) score += 10;
     if (/(function|method|endpoint|skema|schema|tabel|table|query|class|interface|controller|service|grid|pivot)/i.test(cleanTask)) score += 10;
 
+    // Additional check for Video / AI / Prompt domain keywords:
+    if (/(sora|runway|kling|pika|luma|cinemat|camera|kamera|lens|lensa|lighting|motion|drone|dolly|fps|render|shot|angle|cyberpunk|photoreal|anamorphic|bokeh)/i.test(cleanTask)) score += 10;
+    if (/(system prompt|few-shot|chain-of-thought|cot|llm|token|halusinasi|hallucination|temperature|guardrail|context window|role prompting|instruction)/i.test(cleanTask)) score += 10;
+
     // 4. Action clarity (max 15%)
-    if (/(update|ganti|ubah|tambah|buat|perbaiki|refactor|integrasikan|hapus|fix)/i.test(cleanTask)) score += 15;
+    if (/(update|ganti|ubah|tambah|buat|perbaiki|refactor|integrasikan|hapus|fix|rancang|generate|susun|animasi)/i.test(cleanTask)) score += 15;
 
     // 5. Structure & Organization (max 15%)
     if (/(\n\s*[-*•\d.]+|\n\s*###|\n\s*\*\*)/i.test(cleanTask)) score += 15;
