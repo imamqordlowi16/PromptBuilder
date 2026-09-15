@@ -96,6 +96,7 @@
     continuationBanner: document.getElementById("continuationBanner"),
     contStepNum: document.getElementById("contStepNum"),
     btnResetContinuation: document.getElementById("btnResetContinuation"),
+    btnClearOldAttachments: document.getElementById("btnClearOldAttachments"),
     revisionBox: document.getElementById("revisionBox"),
     revisionInput: document.getElementById("revisionInput"),
     btnSubmitRevision: document.getElementById("btnSubmitRevision"),
@@ -264,6 +265,16 @@
     // Reset Continuation Sesi
     if (el.btnResetContinuation) {
       el.btnResetContinuation.addEventListener("click", handleResetContinuation);
+    }
+
+    // Bersihkan Lampiran Lama di Banner Lanjutan
+    if (el.btnClearOldAttachments) {
+      el.btnClearOldAttachments.addEventListener("click", () => {
+        state.attachments = [];
+        renderAttachmentsList();
+        updatePromptOutput();
+        showToast("🧹 Lampiran lama berhasil dibersihkan! Anda bisa melampirkan screenshot error baru sekarang.", "info");
+      });
     }
 
     // Evaluation: Belum Sesuai (Buka Kotak Revisi)
@@ -453,20 +464,37 @@
     window.addEventListener("paste", handlePasteEvent);
   }
 
-  // Handle Clipboard Paste (Files or Snippet Text)
+  // Handle Clipboard Paste (Images/Screenshots, Files, or Snippet Text)
   function handlePasteEvent(e) {
     const activeEl = document.activeElement;
-    // If typing inside role or task input, don't hijack normal text pasting
     const isTypingInTextarea = activeEl && (activeEl === el.roleInput || activeEl === el.taskInput);
 
-    // Case A: File(s) in clipboard (e.g. copied file from explorer, screenshot, etc.)
+    // Case 1: Intercept Image / Screenshot paste anywhere
+    const items = e.clipboardData ? Array.from(e.clipboardData.items || []) : [];
+    const imageItem = items.find(item => item.type && item.type.startsWith("image/"));
+    if (imageItem) {
+      e.preventDefault();
+      const imageBlob = imageItem.getAsFile();
+      if (imageBlob) {
+        const timeStr = new Date().toISOString().replace(/[-:T.]/g, "").slice(0, 14);
+        const autoName = `Screenshot_${timeStr}.png`;
+        try {
+          Object.defineProperty(imageBlob, "name", { value: autoName, writable: true });
+        } catch (ex) {}
+        handleIncomingFiles([imageBlob]);
+        showToast("📸 Tangkapan layar (screenshot error) berhasil ditempel ke referensi!", "success");
+        return;
+      }
+    }
+
+    // Case 2: File(s) in clipboard (e.g. copied file from explorer)
     if (e.clipboardData && e.clipboardData.files && e.clipboardData.files.length > 0) {
       e.preventDefault();
       handleIncomingFiles(e.clipboardData.files);
       return;
     }
 
-    // Case B: User is focused on Dropzone or explicitly wants to paste code snippet as attachment
+    // Case 3: User is focused on Dropzone or explicitly wants to paste code snippet as attachment
     const isDropzoneFocused = activeEl && (activeEl === el.dropzone || el.dropzone.contains(activeEl));
     if (isDropzoneFocused && !isTypingInTextarea) {
       const pastedText = e.clipboardData ? e.clipboardData.getData("text") : "";
@@ -481,6 +509,8 @@
           sizeFormatted: formatFileSize(pastedText.length),
           ext: detectedExt,
           content: pastedText.trim(),
+          imageData: null,
+          isImage: false,
           isBinary: false
         });
 
@@ -621,12 +651,31 @@
       await Promise.all(batch.map(async ({ file, fullPath }) => {
         const sizeFormatted = formatFileSize(file.size);
         const ext = getFileExtension(file.name);
-        const isText = isTextOrCodeFile(file.name, file.type);
+        const isImage = isImageFile(file.name, file.type);
+        const isText = !isImage && isTextOrCodeFile(file.name, file.type);
 
         let content = null;
+        let imageData = null;
         let isBinary = true;
 
-        if (isText && file.size < 3 * 1024 * 1024) { // Sampai dengan 3MB teks
+        if (isImage) {
+          if (file.size < 8 * 1024 * 1024) { // Sampai 8MB gambar
+            try {
+              const dataUrl = await readFileAsDataURL(file);
+              const commaIdx = dataUrl.indexOf(",");
+              const base64Data = commaIdx !== -1 ? dataUrl.slice(commaIdx + 1) : "";
+              const mime = (file.type && file.type.startsWith("image/")) ? file.type : `image/${ext === "jpg" ? "jpeg" : ext}`;
+              imageData = {
+                mimeType: mime,
+                data: base64Data,
+                dataUrl: dataUrl
+              };
+              isBinary = false;
+            } catch (err) {
+              console.warn("Could not read image file:", fullPath, err);
+            }
+          }
+        } else if (isText && file.size < 3 * 1024 * 1024) { // Sampai dengan 3MB teks
           try {
             content = await readFileAsText(file);
             isBinary = false;
@@ -642,6 +691,8 @@
           sizeFormatted,
           ext,
           content,
+          imageData,
+          isImage,
           isBinary
         });
 
@@ -653,7 +704,7 @@
     if (addedCount > 0) {
       renderAttachmentsList();
       updatePromptOutput();
-      showToast(`📎 Berhasil melampirkan ${addedCount} berkas dari folder!`, "success");
+      showToast(`📎 Berhasil melampirkan ${addedCount} berkas/tangkapan layar!`, "success");
     }
   }
 
@@ -667,14 +718,26 @@
     });
   }
 
+  // Read File As DataURL Helper (For Images & Screenshots)
+  function readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
   // Add item to state.attachments
-  function addAttachmentRecord({ name, sizeFormatted, ext, content, isBinary }) {
+  function addAttachmentRecord({ name, sizeFormatted, ext, content, imageData = null, isImage = false, isBinary }) {
     state.attachments.push({
       id: "att_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
       name,
       sizeFormatted,
       ext: ext.toLowerCase(),
       content,
+      imageData,
+      isImage,
       isBinary,
       showPreview: false
     });
@@ -701,20 +764,24 @@
       itemEl.className = "att-item";
 
       const extClass = getBadgeClassForExt(item.ext);
+      const hasTextPreview = item.content && !item.isImage;
+      const hasImagePreview = item.isImage && item.imageData && item.imageData.dataUrl;
 
       itemEl.innerHTML = `
         <div class="att-header-row">
           <div class="att-info">
-            <span class="att-ext-badge ${extClass}">${item.ext || "FILE"}</span>
+            ${hasImagePreview ? `<img src="${item.imageData.dataUrl}" class="att-thumb" alt="thumb">` : ""}
+            <span class="att-ext-badge ${extClass}">${item.ext.toUpperCase() || "FILE"}</span>
             <span class="att-name" title="${item.name}">${item.name}</span>
             <span class="att-size">(${item.sizeFormatted})</span>
           </div>
           <div class="att-tools">
-            ${item.content ? `<button type="button" class="att-btn-action att-btn-preview" title="Lihat cuplikan">${item.showPreview ? "Sembunyikan" : "👁️ Cuplikan"}</button>` : ""}
+            ${(hasTextPreview || hasImagePreview) ? `<button type="button" class="att-btn-action att-btn-preview" title="Lihat cuplikan">${item.showPreview ? "Sembunyikan" : "👁️ Cuplikan"}</button>` : ""}
             <button type="button" class="att-btn-action att-btn-remove" title="Hapus berkas ini">✕</button>
           </div>
         </div>
-        ${item.showPreview && item.content ? `<pre class="att-preview-pre"><code>${escapeHtml(item.content.slice(0, 3000))}${item.content.length > 3000 ? "\n\n... (cuplikan dipotong untuk efisiensi tampilan)" : ""}</code></pre>` : ""}
+        ${item.showPreview && hasTextPreview ? `<pre class="att-preview-pre"><code>${escapeHtml(item.content.slice(0, 3000))}${item.content.length > 3000 ? "\n\n... (cuplikan dipotong untuk efisiensi tampilan)" : ""}</code></pre>` : ""}
+        ${item.showPreview && hasImagePreview ? `<div class="att-image-preview-box"><img src="${item.imageData.dataUrl}" class="att-image-preview-img" alt="preview screenshot"></div>` : ""}
       `;
 
       // Preview Toggle
@@ -755,7 +822,9 @@
       attachmentsSection = `\n\n### LAMPIRAN & REFERENSI TEKNIS\nBerikut adalah rincian berkas dan konteks kode yang dilampirkan:\n`;
       state.attachments.forEach((att, idx) => {
         attachmentsSection += `\n#### [Lampiran ${idx + 1}: ${att.name}] (${att.sizeFormatted})\n`;
-        if (att.content && !att.isBinary) {
+        if (att.isImage) {
+          attachmentsSection += `*(📸 Tangkapan Layar / Screenshot: ${att.name} - ${att.sizeFormatted})*\n*(Unggah/lampirkan berkas tangkapan layar ini ke AI tujuan / Claude / Cursor / Copilot bersamaan dengan prompt ini)*\n`;
+        } else if (att.content && !att.isBinary) {
           const lang = getMarkdownLang(att.ext);
           attachmentsSection += `\`\`\`${lang}\n${att.content.trim()}\n\`\`\`\n`;
         } else {
@@ -1033,7 +1102,7 @@ Contoh:
     if (el.revSpinner) el.revSpinner.classList.remove("hidden");
 
     try {
-      const { tree, techStack, smartAttachments } = analyzeCodebaseContext(currentTask, state.attachments);
+      const { tree, techStack, smartAttachments, imagePayloads } = analyzeCodebaseContext(currentTask, state.attachments);
 
       const res = await fetch("/api/refine", {
         method: "POST",
@@ -1045,6 +1114,9 @@ Contoh:
           model: "gemini-3.6-flash",
           revisionNote: revisionNote,
           attachments: smartAttachments,
+          images: imagePayloads,
+          priorContext: state.previousPromptContext,
+          continuationStep: state.continuationStep,
           codebaseTree: tree,
           techStack: techStack
         })
@@ -1078,14 +1150,25 @@ Contoh:
   // Analyze Codebase Architecture, Directory Tree & Prioritize Relevant Files
   function analyzeCodebaseContext(rawTask, attachments) {
     if (!attachments || attachments.length === 0) {
-      return { tree: "", techStack: "", smartAttachments: [] };
+      return { tree: "", techStack: "", smartAttachments: [], imagePayloads: [] };
     }
 
-    // 1. Detect Frameworks / Languages
+    // 1. Detect Frameworks / Languages & collect images
     const extCounts = {};
+    const imagePayloads = [];
+
     attachments.forEach(a => {
       const ext = a.ext ? a.ext.toLowerCase() : "txt";
       extCounts[ext] = (extCounts[ext] || 0) + 1;
+
+      // Collect image payloads for Gemini Multimodal
+      if (a.isImage && a.imageData && a.imageData.data) {
+        imagePayloads.push({
+          name: a.name,
+          mimeType: a.imageData.mimeType,
+          data: a.imageData.data
+        });
+      }
     });
 
     const detectedTech = [];
@@ -1097,6 +1180,7 @@ Contoh:
     if (extCounts["go"]) detectedTech.push("Golang");
     if (extCounts["java"] || extCounts["kt"]) detectedTech.push("Java / Kotlin");
     if (extCounts["xlsx"] || extCounts["xls"] || extCounts["csv"]) detectedTech.push("Spreadsheet Data Reference");
+    if (imagePayloads.length > 0) detectedTech.push(`${imagePayloads.length} Visual Screenshot(s)`);
 
     const techStack = detectedTech.join(", ") || "General Source Code";
 
@@ -1123,6 +1207,8 @@ Contoh:
         if (att.content.length > maxLen) {
           contentSnippet += "\n... (cuplikan berlanjut)";
         }
+      } else if (att.isImage) {
+        contentSnippet = `[Tangkapan Layar / Screenshot: ${att.name}]`;
       }
 
       return {
@@ -1130,11 +1216,12 @@ Contoh:
         size: att.sizeFormatted,
         ext: att.ext,
         isTarget,
+        isImage: !!att.isImage,
         content: contentSnippet
       };
     });
 
-    return { tree, techStack, smartAttachments };
+    return { tree, techStack, smartAttachments, imagePayloads };
   }
 
   // Intelligent Task Refinement (Powered by Embedded Gemini Key with Deep Codebase Analysis)
@@ -1146,14 +1233,19 @@ Contoh:
     }
 
     const hasAttachments = state.attachments.length > 0;
+    const hasImages = state.attachments.some(a => a.isImage);
 
     // Set Loading State
     el.btnRefineTask.disabled = true;
     el.refineSpinner.classList.remove("hidden");
     if (el.refineText) {
-      el.refineText.textContent = hasAttachments 
-        ? "🧠 Menganalisis alur & struktur berkas (Gemini)..." 
-        : "Merapikan via Gemini 3.6 Flash...";
+      if (hasImages) {
+        el.refineText.textContent = "🔍 Menganalisis screenshot error & kode...";
+      } else if (hasAttachments) {
+        el.refineText.textContent = "🧠 Menganalisis alur & struktur berkas (Gemini)...";
+      } else {
+        el.refineText.textContent = "Merapikan via Gemini 3.6 Flash...";
+      }
     }
 
     try {
@@ -1161,7 +1253,7 @@ Contoh:
       let usedAi = false;
 
       // Analyze Codebase Architecture, Directory Tree & Prioritize Files
-      const { tree, techStack, smartAttachments } = analyzeCodebaseContext(rawText, state.attachments);
+      const { tree, techStack, smartAttachments, imagePayloads } = analyzeCodebaseContext(rawText, state.attachments);
 
       // Call Backend Refine Endpoint
       try {
@@ -1174,6 +1266,9 @@ Contoh:
             provider: "gemini",
             model: "gemini-3.6-flash",
             attachments: smartAttachments,
+            images: imagePayloads,
+            priorContext: state.previousPromptContext,
+            continuationStep: state.continuationStep,
             codebaseTree: tree,
             techStack: techStack
           })
@@ -1203,7 +1298,9 @@ Contoh:
       updateRefineToggleUI();
 
       if (usedAi) {
-        if (hasAttachments) {
+        if (hasImages) {
+          showToast(`🐛 Sukses! Prompt perbaikan error & screenshot berhasil dianalisis (Teks asli tetap aman)!`, "success");
+        } else if (hasAttachments) {
           showToast(`✨ Sukses! Master Prompt dirapikan berdasarkan ${state.attachments.length} berkas (Teks asli tetap aman)!`, "success");
         } else {
           showToast("✨ Master Prompt berhasil dirapikan! Teks asli Anda tetap aman di kolom input.", "success");
@@ -1301,6 +1398,13 @@ Contoh:
     return filename.split(".").pop().toLowerCase();
   }
 
+  // Helper: Determine if file is an image (Screenshot/Visual)
+  function isImageFile(filename, mimeType) {
+    if (mimeType && mimeType.startsWith("image/")) return true;
+    const ext = getFileExtension(filename);
+    return ["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg"].includes(ext);
+  }
+
   // Helper: Determine if file is text/code
   function isTextOrCodeFile(filename, mimeType) {
     if (mimeType && (mimeType.startsWith("text/") || mimeType.includes("json") || mimeType.includes("xml") || mimeType.includes("javascript"))) {
@@ -1340,6 +1444,7 @@ Contoh:
 
   // Helper: Get badge color class
   function getBadgeClassForExt(ext) {
+    if (["png", "jpg", "jpeg", "webp", "gif", "bmp", "svg"].includes(ext)) return "att-ext-img";
     if (["cs", "razor", "ts", "js", "py", "go", "java", "cpp"].includes(ext)) return "att-ext-code";
     if (["xlsx", "xls", "csv"].includes(ext)) return "att-ext-sheet";
     if (["sql", "json", "xml", "yml", "yaml"].includes(ext)) return "att-ext-code";

@@ -103,11 +103,16 @@
           <div id="continuationBanner" class="continuation-banner hidden">
             <div class="cont-info">
               <span class="cont-badge">🔄 Sesi Lanjutan (<span id="contStepNum">Tahap 2</span>)</span>
-              <span class="cont-desc">Menyertakan asumsi & arsitektur dari hasil prompt sebelumnya.</span>
+              <span class="cont-desc">Menyertakan asumsi dari prompt sebelumnya.</span>
             </div>
-            <button type="button" id="btnResetContinuation" class="btn btn-xs btn-chip-danger" title="Mulai sesi baru tanpa asumsi sebelumnya">
-              ✕ Reset Sesi Baru
-            </button>
+            <div class="cont-actions">
+              <button type="button" id="btnClearOldAttachments" class="btn btn-xs btn-chip" title="Kosongkan lampiran lama agar AI fokus pada screenshot atau berkas error sesi ini">
+                🧹 Bersihkan Lampiran Lama
+              </button>
+              <button type="button" id="btnResetContinuation" class="btn btn-xs btn-chip-danger" title="Mulai sesi baru tanpa asumsi sebelumnya">
+                ✕ Reset Sesi Baru
+              </button>
+            </div>
           </div>
 
           <div class="form-group task-input-group">
@@ -296,7 +301,7 @@ Senior Polyglot Full-Stack Engineer ahli dalam SEMUA bahasa pemrograman utama...
     <div id="toastContainer" class="toast-container"></div>
   </div>
 
-  <script src="app.js?v=23"></script>
+  <script src="app.js?v=24"></script>
 </body>
 
 </html>

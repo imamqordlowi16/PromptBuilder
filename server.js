@@ -44,8 +44,8 @@ const SERVER_GEMINI_KEY = process.env.DEFAULT_GEMINI_KEY ||
   process.env.GEMINI_API_KEY || 
   Buffer.from("QVEuQWI4Uk42SjBDUDRoUUZzTTk0QldaeGxxVll1M1Y1aUtGVW42dFBsLWNMaXM5UFR6SkE=", "base64").toString("utf-8");
 
-// Robust Gemini Execution with Automatic Cascade across Available Models (Handles 429/503/404)
-async function executeGeminiWithFallback(apiKey, prompt, initialModel = "gemini-3.6-flash") {
+// Robust Gemini Execution with Automatic Cascade across Available Models (Supports Multimodal Images & Handles 429/503/404)
+async function executeGeminiWithFallback(apiKey, prompt, initialModel = "gemini-3.6-flash", imageParts = []) {
   let normalized = (initialModel || "").trim();
   if (normalized === "gemini-2.0-flash" || normalized === "gemini-2.5-flash" || normalized === "gemini-3-flash" || normalized === "gemini-3") {
     normalized = "gemini-3.6-flash";
@@ -67,11 +67,26 @@ async function executeGeminiWithFallback(apiKey, prompt, initialModel = "gemini-
   for (const targetModel of uniqueModels) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(targetModel)}:generateContent?key=${encodeURIComponent(apiKey.trim())}`;
+      
+      const parts = [{ text: prompt }];
+      if (Array.isArray(imageParts) && imageParts.length > 0) {
+        imageParts.forEach(img => {
+          if (img && img.data) {
+            parts.push({
+              inline_data: {
+                mime_type: img.mimeType || "image/png",
+                data: img.data
+              }
+            });
+          }
+        });
+      }
+
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }]
+          contents: [{ parts: parts }]
         })
       });
 
@@ -196,7 +211,7 @@ async function handleTaskRefine(req, res) {
   req.on("end", async () => {
     try {
       const payload = JSON.parse(body || "{}");
-      const { task, role, provider, model, apiKey, customEndpoint, attachments, codebaseTree, techStack, revisionNote } = payload;
+      const { task, role, provider, model, apiKey, customEndpoint, attachments, images, codebaseTree, techStack, revisionNote, priorContext, continuationStep } = payload;
 
       if (!task || !task.trim()) {
         res.writeHead(400, { "Content-Type": "application/json" });
@@ -215,10 +230,24 @@ async function handleTaskRefine(req, res) {
         return res.end(JSON.stringify({ refined: null, note: "No API key provided, use local heuristic" }));
       }
 
+      // Check if task is an error / bug / troubleshooting report or has attached screenshot
+      const hasImages = Array.isArray(images) && images.length > 0;
+      const isTroubleshooting = /(error|bug|gagal|exception|failed|crash|kenapa|tidak muncul|tidak bisa|salah|warning|stack trace|tangkapan layar|screenshot|hasil screenshot|perbaiki error|kendala|issue)/i.test(task) || hasImages;
+
       // Format Revision Note (if user requested revisions)
       let revisionSection = "";
       if (revisionNote && revisionNote.trim()) {
         revisionSection = `\n\n### CATATAN REVISI / PERBAIKAN PENGGUNA (PRIORITAS TINGGI):\nPengguna meminta koreksi/revisi khusus berikut terhadap instruksi:\n"${revisionNote.trim()}"\nPastikan requirement yang kamu susun mengintegrasikan dan menerapkan instruksi koreksi ini secara penuh!\n`;
+      }
+
+      // Format Prior Session Context (as historical background only - NOT to be copied or repeated)
+      let priorSection = "";
+      if (priorContext && priorContext.trim()) {
+        priorSection = `\n\n### KONTEKS IMPLEMENTASI TAHAP SEBELUMNYA (TAHAP ${continuationStep ? continuationStep - 1 : 1}):
+*(PENTING: Ini adalah catatan riwayat dari sesi sebelumnya. JANGAN menyalin ulang atau memaksakan requirement lama jika pengguna sekarang sedang melaporkan error atau requirement baru)*
+"""
+${priorContext.trim()}
+"""\n`;
       }
 
       // Format Codebase Architecture & Files Context
@@ -233,7 +262,9 @@ async function handleTaskRefine(req, res) {
       if (Array.isArray(attachments) && attachments.length > 0) {
         codebaseSection += "\n\n### KONTEN & CUPLIKAN BERKAS SUMBER KODE:\n" + attachments.map((att, i) => {
           let s = `[File ${i + 1}] ${att.name || 'Berkas'} (${att.size || ''})${att.isTarget ? ' ★ [BERKAS TARGET UTAMA - DISEBUT DALAM TASK]' : ''}`;
-          if (att.content && typeof att.content === "string") {
+          if (att.isImage) {
+            s += `\n*(Tangkapan Layar / Screenshot Gambar Referensi Terlampir - Periksa gambar visual)*`;
+          } else if (att.content && typeof att.content === "string") {
             s += `\n\`\`\`${att.ext || ''}\n${att.content}\n\`\`\``;
           } else {
             s += `\n*(Berkas non-teks / rujukan format)*`;
@@ -242,21 +273,53 @@ async function handleTaskRefine(req, res) {
         }).join("\n---\n");
       }
 
-      const refinePrompt = `Kamu adalah Principal Software Architect & Expert AI Prompt Engineer.
+      let refinePrompt = "";
+
+      if (isTroubleshooting) {
+        refinePrompt = `Kamu adalah Principal Software Architect & Senior Debugging Specialist.
+PENGGUNA SEDANG MENGHADAPI MASALAH / ERROR / BUG PADA APLIKASI (Sesi Lanjutan Tahap ${continuationStep || 2}):
+
+ATURAN KRUSIAL TROUBLESHOOTING:
+1. FOKUS 100% PADA MASALAH / ERROR YANG DILAPORKAN.
+2. JANGAN PERNAH MENGULANG ATAU MEMAKSAKAN REFERENSI LAMA dari tahap sebelumnya (seperti menyalin kembali fitur/kolom lama yang sudah selesai di tahap lalu). Fokus murni pada perbaikan bug ini!
+3. Jika terdapat tangkapan layar (screenshot) atau pesan error yang dilampirkan, periksa secara saksama pesan error, stack trace, komponen UI, dan baris kode yang rusak.
+4. Temukan Root Cause (akar masalah) dan berikan solusi isolasi yang presisi tanpa merusak kode yang sudah bekerja.
+
+FORMAT OUTPUT YANG DIHASILKAN (Langsung to-the-point tanpa salam/basa-basi):
+🐛 DIAGNOSIS & AKAR MASALAH (ROOT CAUSE):
+(Jelaskan secara tepat mengapa error tersebut terjadi berdasarkan pesan error, screenshot, atau logika kode)
+
+🎯 TARGET BERKAS & FUNGSI YANG BERMASALAH:
+- Berkas Target: [Path berkas/fungsi yang menyebabkan error]
+- Indikasi Penyebab: [Null reference, tipe data tidak sesuai, lifecycle event, atau endpoint/query gagal]
+
+🛠️ LANGKAH PERBAIKAN TEKNIS (KODE FIX):
+(Berikan instruksi koreksi konkret langkah demi langkah untuk menuntaskan error tersebut)
+
+✅ KRITERIA VALIDASI & PENCEGAHAN REGRESI:
+(Kondisi yang harus dipenuhi: null checking, try-catch, validasi parameter, dan verifikasi bahwa error tidak muncul lagi)
+
+Teks Laporan Masalah / Error Pengguna:
+${task.trim()}
+${revisionSection}
+${priorSection}
+${codebaseSection}`;
+      } else {
+        refinePrompt = `Kamu adalah Principal Software Architect & Expert AI Prompt Engineer.
 Tugasmu: Analisis secara mendalam struktur folder, pohon hierarki berkas, alur logika program, dan hubungan antar-komponen dari codebase yang dilampirkan. Kemudian susun ulang teks instruksi pengguna agar menjadi spesifikasi requirement teknis yang SANGAT DETAIL, PRESISI, DAN PAHAM ALUR SISTEM.
 
 PANDUAN PEMAHAMAN STRUKTUR & ALUR KODE:
 1. TELUSURI PERAN BERKAS:
    - Identifikasi mana berkas yang menjadi komponen UI (View/Page/Component).
    - Identifikasi mana berkas yang menjadi service / logic layer (ETL, API, Controller, Handler, Database).
-   - Identifikasi berkas yang menjadi referensi logika (misal: "ambil logic dari PUAB.razor") atau referensi lembar kerja (Excel/SQL/JSON).
+   - Identifikasi berkas yang menjadi referensi logika atau referensi lembar kerja (Excel/SQL/JSON).
 2. PAHAMI ALUR DATA (DATA & LOGIC FLOW):
    - Hubungkan instruksi pengguna dengan alur kerja nyata: mulai dari filter/input UI, pemanggilan method async, skema ETL/database yang dieksekusi, hingga binding data pada grid/tabel.
 3. PRIORITASKAN CATATAN REVISI (JIKA ADA):
    - Jika ada catatan revisi dari pengguna, jadikan catatan tersebut sebagai instruksi utama yang harus dipenuhi dalam penyesuaian requirement.
 4. BUAT INSTRUKSI KONKRET & SPESIFIK:
-   - Gunakan nama berkas asli, nama method asli (misal: LoadPdnKelompokPage, LoadPivotAsync), nama skema ETL asli, dan nama variabel asli yang terdapat di dalam berkas terlampir.
-   - Jangan berasumsi generik; ground instruksi pada kode yang ada.
+   - Gunakan nama berkas asli, nama method asli, nama skema asli, dan nama variabel asli yang terdapat di dalam berkas terlampir.
+   - Jangan mengulang referensi yang sudah usang; sesuaikan dengan task saat ini.
 
 FORMAT OUTPUT YANG DIHASILKAN (Langsung sajikan teks requirement tanpa salam atau basa-basi pembuka/penutup):
 🎯 RINGKASAN & ALUR KERJA:
@@ -264,7 +327,7 @@ FORMAT OUTPUT YANG DIHASILKAN (Langsung sajikan teks requirement tanpa salam ata
 
 📁 BERKAS TARGET & RUJUKAN:
 - Target Modifikasi: [Path berkas yang akan diubah & komponen terkait]
-- Acuan Logika / Referensi: [Path berkas rujukan dan apa yang disalin/diadaptasi darinya]
+- Acuan Logika / Referensi: [Path berkas rujukan dan apa yang disalin/diadaptasi darinya jika ada]
 
 🛠️ RINCIAN LANGKAH IMPLEMENTASI TEKNIS:
 (Uraikan secara bertahap per fungsi/method/bagian dengan poin-poin terstruktur: perubahan nama skema, adaptasi method grid, pembuatan parameter filter reaktif, dan pemetaan kolom)
@@ -278,12 +341,30 @@ FORMAT OUTPUT YANG DIHASILKAN (Langsung sajikan teks requirement tanpa salam ata
 Teks Instruksi Asli Pengguna:
 ${task.trim()}
 ${revisionSection}
+${priorSection}
 ${codebaseSection}`;
+      }
 
       let refinedText = "";
 
       if (provider === "claude") {
         const claudeModel = model || "claude-3-7-sonnet-latest";
+        const contentBlocks = [{ type: "text", text: refinePrompt }];
+        if (Array.isArray(images) && images.length > 0) {
+          images.forEach(img => {
+            if (img && img.data) {
+              contentBlocks.push({
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: img.mimeType || "image/png",
+                  data: img.data
+                }
+              });
+            }
+          });
+        }
+
         const response = await fetch("https://api.anthropic.com/v1/messages", {
           method: "POST",
           headers: {
@@ -294,7 +375,7 @@ ${codebaseSection}`;
           body: JSON.stringify({
             model: claudeModel,
             max_tokens: 2048,
-            messages: [{ role: "user", content: refinePrompt }]
+            messages: [{ role: "user", content: contentBlocks }]
           })
         });
         const data = await response.json();
@@ -318,8 +399,8 @@ ${codebaseSection}`;
         if (!response.ok) throw new Error(data.error?.message || `API Error (${response.status})`);
         refinedText = data.choices?.[0]?.message?.content?.trim() || "";
       } else {
-        // Default: Google Gemini API with smart auto-cascade across available models
-        const geminiResult = await executeGeminiWithFallback(effectiveApiKey, refinePrompt, model || "gemini-3.6-flash");
+        // Default: Google Gemini API with multimodal vision support (supports screenshots & images)
+        const geminiResult = await executeGeminiWithFallback(effectiveApiKey, refinePrompt, model || "gemini-3.6-flash", images || []);
         if (!geminiResult.ok) {
           throw new Error(geminiResult.error);
         }
